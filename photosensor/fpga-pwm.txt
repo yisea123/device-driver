@@ -1,0 +1,20 @@
+Device tree bindings for FPGA controlled PWMs
+
+Required properties:
+
+ - #pwm-cells:		Should be 2
+ - compatible:		Should be "gwi,fpga-pwm"
+ - reg:			offset of PWM 
+
+
+Example:
+	/* FPGA on CS2*/
+	fpga@2,0 {
+		reg = <2 0 0x10000>;
+
+		fpga-pwm: fpga-pwm@0 {
+			#pwm-cells = <2>;
+			compatible = "gwi,fpga-pwm";
+		};
+	}
+
