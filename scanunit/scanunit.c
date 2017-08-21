@@ -55,7 +55,7 @@ phandle sensor_list[MAX_IMAGE_SENSORS];
 
 u32 imagebuf[MAX_PIXEL_NUM*10];
 unsigned int scanmode = 0;
-unsigned int irq_timeout_value = 0;
+unsigned int irq_timeout_value = 10;
 
 enum light_index_order {
 	LIGHT_VI_A,
@@ -156,6 +156,7 @@ static int scanunit_mmap(struct file *file, struct vm_area_struct * vma)
 static ssize_t scanunit_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
 	int ret = -EINVAL;
+	int rs;
 	int i, lights = 6, len, lightcnt = 0;
 	u32 mask, imgdata_status, fetch_mask;
 	u32 timeout = 0;
@@ -210,7 +211,11 @@ static ssize_t scanunit_read(struct file *file, char __user *buf, size_t count, 
 			fpga_readl(&imgdata_status, imgdata_int_status);
 			if (imgdata_status != 0)
 				break;
-			wait_for_completion_timeout(&img_completion, timeout);
+			rs = wait_for_completion_timeout(&img_completion, timeout);
+			if (rs == 0) {
+				printk(KERN_ERR "scanunit_read:timeout err!!!\r\n");
+				return -EAGAIN;
+			}
 		}
 		fpga_writel(imgdata_status, imgdata_int_clear); //clear int status bits
 		fetch_mask &= ~imgdata_status; //clear geted mask status
