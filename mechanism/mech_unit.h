@@ -19,7 +19,7 @@
 //--------------------------------------------------------
 struct mechanism_uint_data{
 	char mech_unit_name[MECHUINT_NAME_LEN];
-	char mech_unit_num;
+	char mech_unit_type;
 	mechanism_uint_motor_data_t	unit_motor_data;
 	char bmotor_filled;
 	mechanism_uint_sensor_data_t 	unit_sensor_data;
@@ -141,9 +141,9 @@ static inline void stepmotor_callback(struct motor_data *pmotor_data, struct mec
 		if(steppermotor_is_stopped_by_total_steps(status)){
 			pr_debug("steppermotor_is_totalsteps_done\n");
 			if (pmotor_data->moving_status & MOTOR_STOP_BY_SOFT_START){
-				pmotor_data->stoping_status |= MOTOR_STOP_BY_SOFT;
+				pmotor_data->stoping_status = MOTOR_STOP_BY_SOFT;
 			} else
-				pmotor_data->stoping_status |= MOTOR_STOP_BY_TOTAL;
+				pmotor_data->stoping_status = MOTOR_STOP_BY_TOTAL;
 
 			pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP;
 			pmechanism_dev->sigio_event = stop_flag|pmotor_data->stoping_status;
@@ -153,27 +153,42 @@ static inline void stepmotor_callback(struct motor_data *pmotor_data, struct mec
 			if (steppermotor_is_stopped_by_sensor(status))
 			{
 				pr_debug("steppermotor_is_stopped_by_sensor ");
-				pmotor_data->stoping_status |= MOTOR_STOP_BY_SENSOR;
+				pmotor_data->stoping_status = MOTOR_STOP_BY_SENSOR;
 			}
 			else{
 				pr_debug("steppermotor_is_stopped_by_skew ");
-				pmotor_data->stoping_status |= MOTOR_STOP_BY_SKEW;
+				pmotor_data->stoping_status = MOTOR_STOP_BY_SKEW;
 			}
 			pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP;
 			
+			#if 0
 			pr_debug("phase_current_num=%d sen_mask=%x motor_sen_flag=%x\n",pmotor_data->phase_current_num,
 				pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].sen_mask,
 				pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].motor_sen_flag);
 
 			pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP; 
 			pmechanism_dev->sigio_event = stop_flag|pmotor_data->stoping_status | 
-				(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].sen_mask<<MOTOR_STATUS_SHIFT) |
-				(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].motor_sen_flag<<MOTOR_SEN_FLAG_SHIFT);
+				(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].sen_mask<<MOTOR_STOP_SEN_POS_SHIFT) |
+				(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].motor_sen_flag<<MOTOR_STOP_SEN_FLAG_SHIFT);
+			#else
+			pr_debug("phase_current_num=%d stop_flag=%x sen_mask=%x motor_sen_flag=%x\n",pmotor_data->phase_current_num,stop_flag,
+				pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].sen_mask,
+				pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].motor_sen_flag);
+
+			pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP; 
+			pmechanism_dev->sigio_event = stop_flag|pmotor_data->stoping_status | 
+				#ifdef MECH_SENSOR_INDEX_20170815
+				MOTOR_STOP_SEN_POS_TO_RES(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].sen_pos_index) |
+				#else
+				(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].sen_mask<<MOTOR_STOP_SEN_POS_SHIFT) |
+				#endif
+				MOTOR_STOP_SEN_FLAG_TO_RES(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].motor_sen_flag);
+			#endif
 			
 		}
 		else if (steppermotor_is_stopped_by_trigger(status)) {
 			pr_debug("steppermotor_is_stopped_by_trigger\n");
-			pmotor_data->stoping_status |= MOTOR_STOP_BY_TRIGER;
+			pmotor_data->stoping_status = MOTOR_STOP_BY_TRIGER;
 			pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP;
 			pmechanism_dev->sigio_event = stop_flag|pmotor_data->stoping_status;
 		}
@@ -182,7 +197,7 @@ static inline void stepmotor_callback(struct motor_data *pmotor_data, struct mec
 		    pr_debug("steppermotor_is_error");
 		    #ifdef MECH_OPTIMIZE_20170606
 		    pmotor_data->stoping_status = MOTOR_STOP_BY_ABNORMAL;
-		    pmotor_data->err_status = -MECH_ERR_MOTOR_HW_ERR;
+		    pmotor_data->err_status = -RESN_MECH_ERR_MOTOR_HW_ERR;
 		    #else
 		    pmotor_data->stoping_status |= MOTOR_STOP_BY_ABNORMAL |MOTOR_HW_ERR;
 		    #endif
@@ -228,12 +243,12 @@ static inline void stepmotor_callback(struct motor_data *pmotor_data, struct mec
 		}
 		#ifdef MECH_OPTIMIZE_20170606
 		pmotor_data->stoping_status = MOTOR_STOP_BY_ABNORMAL;
-		pmotor_data->err_status = -MECH_ERR_MOTOR_INT_INVALID;
+		pmotor_data->err_status = -RESN_MECH_ERR_MOTOR_INT_INVALID;
 		pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP;
 		#else
 		pmotor_data->stoping_status |= MOTOR_STOP_BY_ABNORMAL|MOTOR_INT_INVALID;
 		pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP;
-		pmechanism_dev->sigio_event = MOTOR_INT_INVALID|stop_flag | pmotor_data->stoping_status | ((status&0xff) << MOTOR_STATUS_SHIFT);
+		pmechanism_dev->sigio_event = MOTOR_INT_INVALID|stop_flag | pmotor_data->stoping_status | ((status&0xff) << MOTOR_STOP_SEN_POS_SHIFT);
 		#endif
 
 		if (pmotor_data->motor_phase_accout != 0)

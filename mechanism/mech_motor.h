@@ -6,6 +6,7 @@
 #include "../photosensor/photosensor.h"
 #include <mech_base.h>
 #include "mech_sensor.h"
+#include "dcmotor.h"
 #include "mechlib.h"
 
 //-----type of motor-----
@@ -59,7 +60,7 @@ struct motor_data{
     #ifdef MECH_OPTIMIZE_20170606
     int err_status;
     #endif
-    void (*callback)(struct steppermotor *motor, struct callback_data *);
+    void (*callback)(void *motor, struct callback_data *);
 };
 
 typedef struct {
@@ -80,14 +81,14 @@ static inline void motormove_err_callback(struct motor_data *pmotor_data, int re
 {
 	switch (ret) 
 	{
-	case -MECH_ERR_MOTOR_WAIT_TRIGER_TIMEOUT:
-	case -MECH_ERR_MOTOR_WAIT_STOP_TIMEOUT:
-	case -MECH_ERR_MOTOR_MOVE_SET_CONFIG_ERR:
-	case -MECH_ERR_MOTOR_MOVE_SET_SENMASK_ERR:
-	case -MECH_ERR_MOTOR_MOVE_SET_TRIGGER_NEXT:
-	case -MECH_ERR_MOTOR_MOVE_START_ERR:
-	case -MECH_ERR_MOTOR_SENSOR_CONFIG_ERR:
-		printk("motormove_err_callback motor_phase_accout=%d motor_comp_accout=%d moving_status=%x\n", 
+	case -RESN_MECH_ERR_MOTOR_WAIT_TRIGER_TIMEOUT:
+	case -RESN_MECH_ERR_MOTOR_WAIT_STOP_TIMEOUT:
+	case -RESN_MECH_ERR_MOTOR_MOVE_SET_CONFIG_ERR:
+	case -RESN_MECH_ERR_MOTOR_MOVE_SET_SENMASK_ERR:
+	case -RESN_MECH_ERR_MOTOR_MOVE_SET_TRIGGER_NEXT:
+	case -RESN_MECH_ERR_MOTOR_MOVE_START_ERR:
+	case -RESN_MECH_ERR_MOTOR_SENSOR_CONFIG_ERR:
+		printk("motormove_err_callback motor_phase_accout=%d motor_comp_accout=%d moving_status=%lx\n", 
 			pmotor_data->motor_phase_accout, pmotor_data->motor_comp_accout, pmotor_data->moving_status);
 
 		if (pmotor_data->motor_phase_accout != 0)
@@ -133,7 +134,7 @@ static inline  int step_motor_triger_deal(struct motor_data *pmotor_data, char t
 		if(ret)
 		{
 			 printk("step_motor_start:sensor_set_trigger_next error!\n");
-			 ret = -MECH_ERR_MOTOR_SENSOR_CONFIG_ERR;
+			 ret = -RESN_MECH_ERR_MOTOR_SENSOR_CONFIG_ERR;
 			 motormove_err_callback(pmotor_data, ret);
 			 return ret;
 		}
@@ -158,7 +159,7 @@ static inline  int step_motor_triger_deal(struct motor_data *pmotor_data, char t
 	if(ret)
 	{
 		printk("step_motor_start:steppermotor_set_triggersteps_next error!\n");
-		ret = -MECH_ERR_MOTOR_MOVE_SET_TRIGGER_NEXT;
+		ret = -RESN_MECH_ERR_MOTOR_MOVE_SET_TRIGGER_NEXT;
 		motormove_err_callback(pmotor_data, ret);
 		return ret;
 	}
@@ -180,5 +181,6 @@ extern int motor_get_feature(mechanism_uint_motor_data_t *punit_motor_data, moto
 extern int motor_lock(mechanism_uint_motor_data_t *punit_motor_data, unsigned short motor_mask);
 extern int motor_unlock(mechanism_uint_motor_data_t *punit_motor_data, unsigned short motor_mask);
 extern int motor_skewsteps_set(mechanism_uint_motor_data_t *punit_motor_data, unsigned short motor_mask, int skew_steps);
+extern int motor_get_running_steps(mechanism_uint_motor_data_t *punit_motor_data, unsigned short motor_mask, int *psteps);
 #endif
 

@@ -19,7 +19,7 @@ int sensor_init(mechanism_uint_sensor_data_t *punit_sensor_data,  unsigned short
 		
 		sensor_get_data(punit_sensor_data, sen_mask, psen_data, j);
 		if (j==punit_sensor_data->sensor_num) {
-		    return -MECH_ERR_SENSOR_GETDATA;
+		    return -RESN_MECH_ERR_SENSOR_GETDATA;
 		}
 		switch (psen_data->sen_type) 
 		{
@@ -57,7 +57,7 @@ int sensor_enable(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned shor
 
 		sensor_get_data(punit_sensor_data, sen_mask, psen_data, j);
 		if (j==punit_sensor_data->sensor_num) {
-			return -MECH_ERR_SENSOR_GETDATA;
+			return -RESN_MECH_ERR_SENSOR_GETDATA;
 		}
 
 		pr_debug("sensor_enable: mask=%x enable=%x\n", sen_mask, enable);
@@ -84,7 +84,7 @@ int sensor_get_val(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned sho
 	//pr_debug("sensor_get_val sensor_num=%d \n", punit_sensor_data->sensor_num); 
         sensor_get_data(punit_sensor_data, sen_mask, psen_data, j);
         if (j==punit_sensor_data->sensor_num) {
-            return -MECH_ERR_SENSOR_GETDATA;
+            return -RESN_MECH_ERR_SENSOR_GETDATA;
         }
        
 	return photosensor_read_input(psen_data->sen_dev.pphotosensor, val);
@@ -99,7 +99,7 @@ int sensor_get_appval(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned 
 
 	sensor_get_data(punit_sensor_data, sen_mask, psen_data, j);
 	if (j==punit_sensor_data->sensor_num) {
-		return -MECH_ERR_SENSOR_GETDATA;
+		return -RESN_MECH_ERR_SENSOR_GETDATA;
 	}
 	//pr_debug("sensor_get_appval sen_mask=%x\n", sen_mask);
 	ret =  photosensor_status(psen_data->sen_dev.pphotosensor, appval); 
@@ -119,7 +119,7 @@ int sensor_set_trigger(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned
 
 		sensor_get_data(punit_sensor_data, sen_mask, psen_data, j);
 		if (j==punit_sensor_data->sensor_num) {
-		    return -MECH_ERR_SENSOR_GETDATA;
+		    return -RESN_MECH_ERR_SENSOR_GETDATA;
 		}
         
 	
@@ -154,7 +154,7 @@ int sensor_set_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, uns
 
 		sensor_get_data(punit_sensor_data, sen_mask, psen_data, j);
 		if (j==punit_sensor_data->sensor_num) {
-			return -MECH_ERR_SENSOR_GETDATA;
+			return -RESN_MECH_ERR_SENSOR_GETDATA;
 		}
        
 		pr_debug("sensor_set_trigger_next : masks=%x trigger_type=%d\n",sen_mask, trigger_type);
@@ -183,7 +183,7 @@ int sensor_clear_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, u
 		sensor_get_data(punit_sensor_data, sen_mask, psen_data, j);
 		//pr_debug("sensor_clear_trigger_next :j=%d sen_mask=%x \n",j,sen_mask);
 		if (j==punit_sensor_data->sensor_num) {
-			return -MECH_ERR_SENSOR_GETDATA;
+			return -RESN_MECH_ERR_SENSOR_GETDATA;
 		}
 
 	//pr_debug("sensor_clear_trigger_next : !!!sen_mask=%x \n",sen_mask);
@@ -211,7 +211,7 @@ int sensor_set_config(mechanism_uint_sensor_data_t *punit_sensor_data, mech_unit
 
 		sensor_get_data(punit_sensor_data, sen_mask, psen_data, j);
 		if (j==punit_sensor_data->sensor_num) {
-			return -MECH_ERR_SENSOR_GETDATA;
+			return -RESN_MECH_ERR_SENSOR_GETDATA;
 		}
 
 		//pr_debug(" sensor_set_config:i=%d mask=%x led_brightness=%d compare_threshold=%d\n", i, sen_mask, p_sen_config->pps_drv_value, p_sen_config->pps_ref_value);
@@ -263,7 +263,7 @@ int sensor_get_feature(mechanism_uint_sensor_data_t *punit_sensor_data, sen_feat
 	// pr_debug("sensor_get_feature1\n");
 	sensor_get_data(punit_sensor_data, p_ppsfeature->sen_mask, psen_data, j);
 	if (j==punit_sensor_data->sensor_num) {
-		return -MECH_ERR_SENSOR_GETDATA;
+		return -RESN_MECH_ERR_SENSOR_GETDATA;
 	}
 
 	//pr_debug("sensor_get_feature2:sen_mask=%x sensor=%x\n", p_ppsfeature->sen_mask, psen_data->sen_dev.pphotosensor);

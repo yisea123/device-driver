@@ -9,7 +9,8 @@ PWD := $(shell pwd)
 
 # define include file directory for all scanner devices drivers
 #subdir-ccflags-y := -I$(src)/include
-INCLUDES := $(obj)/../../../work/*/fw/include
+#INCLUDES := $(obj)/../../../work/*/fw/include
+INCLUDES := $(obj)/../../../../sources/common/include -I $(obj)/../../../../sources/common/fw/include
 #subdir-ccflags-y := -I $(INCLUDES)
 
 
