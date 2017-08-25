@@ -20,12 +20,17 @@
 *.bin
 *.patch
 *.cfgtmp
+*.ko
+*.symvers
+
 
 # host programs on Cygwin
 *.exe
 
 # Build tree
 /build-*
+/build
+/download
 
 #
 # Top-level generic files
