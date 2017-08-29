@@ -66,7 +66,13 @@ static inline long scanunit_io_start_scanning(unsigned long arg)
 
 	fpga_readl(&imgdata_status, imgdata_int_status);
 	fpga_writel(imgdata_status, imgdata_int_clear); //clear int status bits
-	rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_ENABLE, FPGA_REG_CIS_SCAN_ENABLE);
+	if (arg == 0)
+		rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_ENABLE, FPGA_REG_CIS_SCAN_ENABLE);
+	else if (arg == 1)
+		rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_TRIGGER_ENABLE, FPGA_REG_CIS_SCAN_TRIGGER_ENABLE);
+	else
+		return -EINVAL;
+
 	return rs;
 }
 
@@ -74,7 +80,7 @@ static inline long scanunit_io_start_scanning(unsigned long arg)
 static inline long scanunit_io_stop_scanning(unsigned long arg)
 {
 	int rs;
-	rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_ENABLE, 0);
+	rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_ENABLE|FPGA_REG_CIS_SCAN_TRIGGER_ENABLE, 0);
 	return rs;
 }
 
