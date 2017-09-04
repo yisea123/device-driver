@@ -125,7 +125,7 @@ static ssize_t config_set(struct device *dev, struct device_attribute *attr, con
 	
 	/*start download fpga*/
 	ret = download_proc(fw, "top_check_scanner.bin");
-	if(ret)	
+	if(!ret)	
 	    printk("fpga download success!\n");
 	else
 	    printk("fpga download fail!\n");
