@@ -24,14 +24,14 @@
 
 int mechunit_get_sensor_status(struct mechanism_uint_data *punit_data,unsigned short sensor_masks, unsigned short *pstatus)
 {
-	unsigned char i, j;
+	unsigned char j;
 	unsigned short mask, status=0;
 	unsigned int val;
 	int ret=0;
 	
 	//*pstatus = 0;
 	
-	pr_debug("mechunit_get_sensor_status:sensor_masks=%x sensor_num=%d\n", sensor_masks, punit_data->unit_sensor_data.sensor_num);
+	//pr_debug("mechunit_get_sensor_status:sensor_masks=%x sensor_num=%d\n", sensor_masks, punit_data->unit_sensor_data.sensor_num);
 	#if 0
 	for (i = 0; i < punit_data->unit_sensor_data.sensor_num; i++) {
 		mask = sensor_masks & (1 << i);
@@ -60,7 +60,7 @@ int mechunit_get_sensor_status(struct mechanism_uint_data *punit_data,unsigned s
 		//}
 		//pr_debug("mechunit_get_sensor_status：mask=%x\n", mask);
 		for (j = 0; j < punit_data->unit_sensor_data.sensor_num; j++) {
-			pr_debug("%d:sen_mask=%x %x\n", j, punit_data->unit_sensor_data.sensor[j].sen_mask, sensor_masks & punit_data->unit_sensor_data.sensor[j].sen_mask);
+			//pr_debug("%d:sen_mask=%x %x\n", j, punit_data->unit_sensor_data.sensor[j].sen_mask, sensor_masks & punit_data->unit_sensor_data.sensor[j].sen_mask);
 			if(sensor_masks & punit_data->unit_sensor_data.sensor[j].sen_mask){
 				mask = punit_data->unit_sensor_data.sensor[j].sen_mask;
 				ret = sensor_get_appval(&(punit_data->unit_sensor_data), mask, &val);
@@ -78,7 +78,7 @@ int mechunit_get_sensor_status(struct mechanism_uint_data *punit_data,unsigned s
 	}
 	#endif
 	*pstatus = status;
-	pr_debug("mechunit_get_sensor_status：=%x\n", *pstatus); 
+	//pr_debug("mechunit_get_sensor_status：=%x\n", *pstatus); 
 	return ret;
 }
 EXPORT_SYMBOL_GPL(mechunit_get_sensor_status);
@@ -371,7 +371,7 @@ int mechunit_probe_get_devtree_pdata(struct device*dev, struct mechanism_uint_da
 	}
 	else
 	{
-		ret = of_property_read_u32(node, "mech_unit_type", &pmech_unit_data->mech_unit_type);
+		ret = of_property_read_u8(node, "mech_unit_type", &pmech_unit_data->mech_unit_type);
 		if (ret){
 			pr_debug("mechunit_probe_get_devtree_pdata:Failed to read mech_unit_type!\n");
 			return ret;
@@ -684,7 +684,7 @@ void mechunit_dcmotor_callback(struct dcmotor *motor,struct callback_data *pcall
 			pmotor_data->moving_status &= ~MOTOR_MOVE_STATUS_RUNNING;
 			pmech_dev->sigio_event = pmotor_data->moving_status|(1<<(motor_mask-1));
 			#endif
-			pr_debug("mechunit_dcmotor_callback1:sigio_event=%x ", pmech_dev->sigio_event);
+			pr_debug("mechunit_dcmotor_callback1:sigio_event=%lx ", pmech_dev->sigio_event);
 		}
 		if ((dcmotor_is_stopped_by_sensor(status))) {
 			pmotor_data->stoping_status = MOTOR_STOP_BY_SENSOR;
@@ -699,7 +699,7 @@ void mechunit_dcmotor_callback(struct dcmotor *motor,struct callback_data *pcall
 				(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].sen_mask<<MOTOR_STOP_SEN_POS_SHIFT) |
 			#endif
 				MOTOR_STOP_SEN_FLAG_TO_RES(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].motor_sen_flag);
-			pr_debug("mechunit_dcmotor_callback2:sigio_event=%x sen_mask=%x sen_pos_index=%d\n", pmech_dev->sigio_event, 
+			pr_debug("mechunit_dcmotor_callback2:sigio_event=%lx sen_mask=%x sen_pos_index=%d\n", pmech_dev->sigio_event, 
 				pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num - 1].sen_mask, 
 				pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num - 1].sen_pos_index); 
 		}
@@ -972,15 +972,17 @@ seqptr_t	const mechunit_library[MECH_CTRL_FUNCTIONS] = {
 	mech_skew_set
 };
 
-static long mechunit_ioctl( struct file *filep, unsigned int cmd, unsigned long arg)
+static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigned long arg)
 {
 	void __user *argp = (void __user *)arg;
 	class_cmd classcmd;
 	int ret=RESN_MECH_NO_ERROR;
 	mech_control_t mech_ctrl;
 	struct mechanism_dev_t *mech_dev = (struct mechanism_dev_t *)(filep->private_data);
+	unsigned int cmd;
 
-	cmd &= 0xff;	/* convert standard IOCTL number to engine IOCTL command id */
+	cmd = ioctrl_cmd&0xff;	/* convert standard IOCTL number to engine IOCTL command id */
+	
 
 	//pr_debug("mechunit_ioctl: cmd=%d \n", cmd);
 	switch (cmd)
@@ -1007,7 +1009,7 @@ static long mechunit_ioctl( struct file *filep, unsigned int cmd, unsigned long 
 			goto mechunit_ioctl_ret;
 		}
 		#ifdef MECH_OPTIMIZE_20170503
-		((mech_unit_sen_raw_input_t *)arg)->sen_num = mech_dev->mech_unit_control.mech_unit_sen_raw_input.sen_num;
+		put_user(mech_dev->mech_unit_control.mech_unit_sen_raw_input.sen_num, &(((mech_unit_sen_raw_input_t *)arg)->sen_num));//put_user (x, ptr)
 		if (copy_to_user((void *)((mech_unit_sen_raw_input_t *)arg)->sen_raw_input, 
 				 (void *)(mech_dev->mech_unit_control.mech_unit_sen_raw_input.sen_raw_input), 
 			sizeof(sen_raw_input_t)*mech_dev->mech_unit_control.mech_unit_sen_raw_input.sen_num))
@@ -1054,8 +1056,7 @@ static long mechunit_ioctl( struct file *filep, unsigned int cmd, unsigned long 
 	case GET_MECH_CONFIG:
 		pr_debug("GET_MECH_CONFIG!");
 		#ifdef MECH_OPTIMIZE_20170503
-		((mech_unit_sen_config_t *)arg)->sen_num = mech_dev->mech_unit_control.mech_unit_sen_config.sen_num;
-
+		put_user(mech_dev->mech_unit_control.mech_unit_sen_config.sen_num, &(((mech_unit_sen_config_t *)arg)->sen_num));
 		if (copy_to_user((void *)(((mech_unit_sen_config_t *)arg)->sen_config), 
 			(void *)(mech_dev->mech_unit_control.mech_unit_sen_config.sen_config), 
 			sizeof(sen_config_t)*mech_dev->mech_unit_control.mech_unit_sen_config.sen_num)) 
@@ -1117,7 +1118,7 @@ static long mechunit_ioctl( struct file *filep, unsigned int cmd, unsigned long 
 			goto mechunit_ioctl_ret;
 		}
 		#ifdef MECH_OPTIMIZE_20170503
-		((mech_unit_sen_feature_t *)arg)->sen_num = mech_dev->mech_unit_control.mech_unit_sen_feature.sen_num;
+		put_user(mech_dev->mech_unit_control.mech_unit_sen_feature.sen_num, &(((mech_unit_sen_feature_t *)arg)->sen_num));
 		if (copy_to_user((void *)(((mech_unit_sen_feature_t *)arg)->sen_feature), 
 			(void *)(mech_dev->mech_unit_control.mech_unit_sen_feature.sen_feature), 
 			sizeof(sen_feature_t)*mech_dev->mech_unit_control.mech_unit_sen_feature.sen_num)) 
@@ -1148,8 +1149,7 @@ static long mechunit_ioctl( struct file *filep, unsigned int cmd, unsigned long 
 			goto mechunit_ioctl_ret;
 		}
 		#ifdef MECH_OPTIMIZE_20170503
-		((mech_unit_motor_feature_t *)arg)->motor_num = mech_dev->mech_unit_control.mech_unit_motor_feature.motor_num;
-
+		put_user(mech_dev->mech_unit_control.mech_unit_motor_feature.motor_num, &(((mech_unit_motor_feature_t *)arg)->motor_num));
 		if (copy_to_user((void *)(((mech_unit_motor_feature_t *)arg)->motor_feature), 
 				(void *)(mech_dev->mech_unit_control.mech_unit_motor_feature.motor_feature), 
 				sizeof(motor_feature_t) * mech_dev->mech_unit_control.mech_unit_motor_feature.motor_num)) 
@@ -1163,10 +1163,20 @@ static long mechunit_ioctl( struct file *filep, unsigned int cmd, unsigned long 
 		}
 		goto mechunit_ioctl_ret;
 	case GET_MECH_MECHFEATURE:
-		//mechunit_feature_t
-		((mechunit_feature_t *)arg)->mech_unit_type = mech_dev->mech_unit_data.mech_unit_type; 
-		((mechunit_feature_t *)arg)->motor_num = mech_dev->mech_unit_control.mech_unit_motor_feature.motor_num;
-		((mechunit_feature_t *)arg)->sensor_num = mech_dev->mech_unit_control.mech_unit_sen_feature.sen_num;
+		{
+			mechunit_feature_t mechunit_feature;
+
+			mechunit_feature.mech_unit_type = mech_dev->mech_unit_data.mech_unit_type; 
+			mechunit_feature.motor_num = mech_dev->mech_unit_control.mech_unit_motor_feature.motor_num;
+			mechunit_feature.sensor_num = mech_dev->mech_unit_control.mech_unit_sen_feature.sen_num;
+			if(copy_to_user((void *)arg,(void *)&(mechunit_feature),sizeof(mechunit_feature_t)))
+			{
+				printk(KERN_INFO "mechunit_ioctl GET_MECH_MECHFEATURE: copy_to_user fail\n");
+				ret = -EFAULT;
+				goto mechunit_ioctl_ret;
+			}
+			goto mechunit_ioctl_ret;
+		}
 
 		goto mechunit_ioctl_ret;
 	case GET_MECH_MOTOR_RUNNING_STEPS:
@@ -1180,18 +1190,14 @@ static long mechunit_ioctl( struct file *filep, unsigned int cmd, unsigned long 
 				printk(KERN_INFO "mechunit_ioctl GET_MECH_MOTOR_RUNNING_STEPS: motor_get_running_steps fail\n");
 				goto mechunit_ioctl_ret;
 			}
-#if 0
-			((mechunit_motor_steps_t *)arg)->motor_steps = steps;
-#else
-			int * p_tag_steps = &((mechunit_motor_steps_t *)arg)->motor_steps;
-			if (copy_to_user((void *)p_tag_steps, 
+
+			if (copy_to_user((void *)&(((mechunit_motor_steps_t *)arg)->motor_steps), 
 					 (void *)&steps, sizeof(int)))
 			{
 				printk(KERN_INFO "mechunit_ioctl GET_MECH_MOTOR_RUNNING_STEPS: copy_to_user fail\n");
 				ret = -EFAULT;
 				goto mechunit_ioctl_ret;
 			}
-#endif
 		}
 		goto mechunit_ioctl_ret;
 	case PAP_GET_SCANTRIGER_STATUS:
@@ -1379,14 +1385,14 @@ int mechunit_probe(struct platform_device *pdev)
 	pmechanism_dev->mech_class = class_create(THIS_MODULE, pmechanism_dev->mech_unit_data.mech_unit_name);
 	if(IS_ERR(pmechanism_dev->mech_class))
 	{
-		pr_debug(KERN_NOTICE "Error %x class_create", pmechanism_dev->mech_class);
+		pr_debug(KERN_NOTICE "Error %x class_create", (int)(pmechanism_dev->mech_class));
 		return PTR_ERR(pmechanism_dev->mech_class);
 	}
 
 	pmechanism_dev->mech_dev = device_create(pmechanism_dev->mech_class, NULL, pmechanism_dev->dev_no, NULL, pmechanism_dev->mech_unit_data.mech_unit_name);
 	if(IS_ERR(pmechanism_dev->mech_dev))
 	{
-		pr_debug(KERN_NOTICE "Error %x device_create", pmechanism_dev->mech_dev);
+		pr_debug(KERN_NOTICE "Error %x device_create", (int)(pmechanism_dev->mech_dev));
 		return PTR_ERR(pmechanism_dev->mech_dev);
 	}
 

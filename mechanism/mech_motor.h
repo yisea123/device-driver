@@ -88,7 +88,7 @@ static inline void motormove_err_callback(struct motor_data *pmotor_data, int re
 	case -RESN_MECH_ERR_MOTOR_MOVE_SET_TRIGGER_NEXT:
 	case -RESN_MECH_ERR_MOTOR_MOVE_START_ERR:
 	case -RESN_MECH_ERR_MOTOR_SENSOR_CONFIG_ERR:
-		printk("motormove_err_callback motor_phase_accout=%d motor_comp_accout=%d moving_status=%lx\n", 
+		printk("motormove_err_callback motor_phase_accout=%d motor_comp_accout=%d moving_status=%x\n", 
 			pmotor_data->motor_phase_accout, pmotor_data->motor_comp_accout, pmotor_data->moving_status);
 
 		if (pmotor_data->motor_phase_accout != 0)
@@ -118,7 +118,7 @@ static inline  int step_motor_triger_deal(struct motor_data *pmotor_data, char t
 	motor_trigger_phase_t *motor_trigger_phase;
 	struct steppermotor_trigger motor_trigger;
 
-	motor_trigger_phase = &(pmotor_data->pmotor_mov->motor_trigger_phase[triger_index]);
+	motor_trigger_phase = &(pmotor_data->pmotor_mov->motor_trigger_phase[(int)triger_index]);
 	motor_trigger.steps = motor_trigger_phase->to_trigger_steps;
 	motor_trigger.control_set_trigger_stop = motor_trigger_phase->motor_triger_flag.motor_trigger_stop_flag;
 	motor_trigger.control_set_trigger_sensor = motor_trigger_phase->motor_triger_flag.motor_trigger_sensor_flag;

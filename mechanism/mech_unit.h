@@ -171,7 +171,7 @@ static inline void stepmotor_callback(struct motor_data *pmotor_data, struct mec
 				(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].sen_mask<<MOTOR_STOP_SEN_POS_SHIFT) |
 				(pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].motor_sen_flag<<MOTOR_STOP_SEN_FLAG_SHIFT);
 			#else
-			pr_debug("phase_current_num=%d stop_flag=%x sen_mask=%x motor_sen_flag=%x\n",pmotor_data->phase_current_num,stop_flag,
+			pr_debug("phase_current_num=%d stop_flag=%lx sen_mask=%x motor_sen_flag=%x\n",pmotor_data->phase_current_num,stop_flag,
 				pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].sen_mask,
 				pmotor_data->pmotor_mov->motor_trigger_phase[pmotor_data->phase_current_num-1].motor_sen_flag);
 
