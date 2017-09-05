@@ -55,7 +55,7 @@ phandle sensor_list[MAX_IMAGE_SENSORS];
 
 u32 imagebuf[MAX_PIXEL_NUM*10];
 unsigned int scanmode = 0;
-unsigned int irq_timeout_value = 10;
+unsigned int irq_timeout_value = 1000;
 
 enum light_index_order {
 	LIGHT_VI_A,
