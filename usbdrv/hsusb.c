@@ -11,6 +11,7 @@
 #include <linux/fs.h>
 #include <linux/poll.h>
 #include <linux/usb/gadget.h>
+#include <linux/timer.h>
 #include <asm/uaccess.h>
 
 #include "composite.c"
@@ -27,6 +28,8 @@
 #define STRING_MANUFACTURER_IDX   0
 #define STRING_PRODUCT_IDX        1
 #define STRING_SERIAL_IDX        2
+
+#define SIMPLE_IO_TIMEOUT   10000   /* in milliseconds */ 
 
 unsigned char data_buf[RECV_BUFLEN] = {0};
 
@@ -442,6 +445,7 @@ static ssize_t hsusb_write(struct file *filp, const char __user * buf, size_t co
 {
 	struct usb_request   *req;
 	int ret;
+	unsigned long       expire;
 //	printk(KERN_ERR "#### write enter\n");
 	if(count == 0)
 		return -EINVAL;
@@ -469,13 +473,20 @@ static ssize_t hsusb_write(struct file *filp, const char __user * buf, size_t co
 		goto fail;
 	}
 
-	wait_for_completion(&ss->gdt_completion);
+	expire = msecs_to_jiffies(SIMPLE_IO_TIMEOUT);
+        if(!wait_for_completion_timeout(&ss->gdt_completion,expire))	
+        {
+                printk(KERN_ERR"****timed out on in_ep=%d!\r\n",ss->actual); 
+		ret = -EAGAIN;
+                goto fail_2;
+        }
 	ss->is_write = false;
 
 	return ss->actual;	
 
 fail:
 	free_ep_req(ss->in_ep, req);
+fail_2:
 	ss->actual = 0;
 	return ret;
 }
