@@ -319,6 +319,8 @@ int steppermotor_check_config(struct steppermotor *motor, const struct steppermo
 	speedinfo = config->speedinfo;
 	speed1 = speedinfo->speed;
 	index1 = lookup_speedtable(motor, speed1);
+	if (IS_ERR_VALUE(index1))
+		return -EINVAL;
 	steps -= motor->feature.speeds[index1].accel_steps;
 	if (steps <= 0)
 		return -EINVAL;
@@ -336,11 +338,15 @@ int steppermotor_check_config(struct steppermotor *motor, const struct steppermo
 		speedinfo = speedinfo->nextspeed;
 		speed2 = speedinfo->speed;
 		index2 = lookup_shifttable(motor, speed1, speed2);
+		if (IS_ERR_VALUE(index2))
+			return -EINVAL;
 		steps -= motor->feature.speedshifts[index2].steps;
 		if (steps <= 0)
 			return -EINVAL;
 
 		index2 = lookup_speedtable(motor, speed2);
+		if (IS_ERR_VALUE(index1))
+			return -EINVAL;
 		steps -= motor->feature.speeds[index2].decel_steps;
 		if (steps <= 0)
 			return -EINVAL;
