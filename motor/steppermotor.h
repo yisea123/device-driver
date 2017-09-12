@@ -4,6 +4,8 @@
 #include <linux/device.h>
 #include <linux/err.h>
 #include <linux/of.h>
+#include <linux/platform_device.h>
+
 #include "motor.h"
 
 

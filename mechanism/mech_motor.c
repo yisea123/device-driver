@@ -616,7 +616,8 @@ static int brushdc_motor_wait_stop(struct motor_data *pmotor_data)
 		//printk("brushdc_motor_wait_stop1& moving_status=%x\n", pmotor_data->moving_status);
 		
 		if (!pmotor_data->pmotor_mov->motor_trigger_phase[0].sen_mask) 	//for (sen_mask==0)，need to stop motor by software
-			pmotor_data->callback(pmotor_data->motor_dev.pdcmotor, &(pmotor_data->motor_dev.pdcmotor->callbackdata)); 
+			pmotor_data->callback.dcmotor_callback(pmotor_data->motor_dev.pdcmotor, &(pmotor_data->motor_dev.pdcmotor->callbackdata));
+
 		//else
 		//	complete_all(&(pmotor_data->motor_completion)); 
 		

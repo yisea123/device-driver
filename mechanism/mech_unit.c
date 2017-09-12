@@ -488,9 +488,7 @@ int mechunit_async(int fd, struct file *filep, int mode)
 EXPORT_SYMBOL_GPL(mechunit_async);
 
 
-
-#ifdef MECH_OPTIMIZE_20170428
-int mechunit_motor_init(mechanism_uint_motor_data_t *punit_motor_data, unsigned short motor_mask, void (*callback)(void *motor, struct callback_data *),struct mechanism_dev_t *mech_dev)
+int mechunit_motor_init(mechanism_uint_motor_data_t *punit_motor_data, unsigned short motor_mask, motor_callback_t *pcallback, struct mechanism_dev_t *mech_dev)
 {
 	struct motor_data *pmotor_data;
 	unsigned char i;
@@ -507,20 +505,20 @@ int mechunit_motor_init(mechanism_uint_motor_data_t *punit_motor_data, unsigned 
 	//pr_debug("motor_num=%d i=%d motor_completion=%x motor_mask=%x motor_name=%s\n", (punit_data)->motor_num, i, &(punit_data)->motor[i].motor_completion, (punit_data)->motor[i].motor_mask, (punit_data)->motor[i].motor_name); 
 
 	call_back_data.data1 = motor_mask;
-	call_back_data.data2 = (void *)mech_dev;
+	call_back_data.data2 = (int)mech_dev;
 
 	switch(pmotor_data->motor_type)
 	{
 	case MOTOR_STEP_TYPE:	
 		//pr_debug("2.steppermotor_set_callback %x %x %x\n", pmotor_data, pmotor_data->motor_dev.psteppermotor, callback);	
-		pmotor_data->callback = callback;
-		steppermotor_set_callback(pmotor_data->motor_dev.psteppermotor, callback, &call_back_data); 
+		pmotor_data->callback.steppermotor_callback = pcallback->steppermotor_callback;
+		steppermotor_set_callback(pmotor_data->motor_dev.psteppermotor, pcallback->steppermotor_callback, &call_back_data); 
 		//pr_debug("3.step_motor_init\n");
 		break;
 	case MOTOR_BRUSHDC_TYPE:
 		//pr_debug("dcmotor_set_callback\n");
-		pmotor_data->callback = callback;
-		dcmotor_set_callback(pmotor_data->motor_dev.pdcmotor, callback, &call_back_data); 
+		pmotor_data->callback.dcmotor_callback = pcallback->dcmotor_callback;
+		dcmotor_set_callback(pmotor_data->motor_dev.pdcmotor, pcallback->dcmotor_callback, &call_back_data); 
 		break;
 	default:
 		return -1;
@@ -539,7 +537,6 @@ int mechunit_motor_init(mechanism_uint_motor_data_t *punit_motor_data, unsigned 
 	return 0;
 }
 EXPORT_SYMBOL_GPL(mechunit_motor_init);
-#endif
 
 #ifdef MECH_OPTIMIZE_20170428
 void mechunit_stepmotor_callback(struct steppermotor *motor, struct callback_data *pcall_back_data)
@@ -765,13 +762,19 @@ void mechunit_dcmotor_callback(struct dcmotor *motor,struct callback_data *pcall
 static	int 	mech_init(struct mechanism_dev_t * mech_dev, class_cmd *cptr)
 {
 	int ret=0, i;
+	motor_callback_t callback;
 
 	for (i=0; i < mech_dev->mech_unit_data.unit_motor_data.motor_num; i++) {
-		ret = mechunit_motor_init(&mech_dev->mech_unit_data.unit_motor_data, 
+		if (mech_dev->mech_unit_data.unit_motor_data.motor[i].motor_type==MOTOR_STEP_TYPE) {
+			callback.steppermotor_callback = mechunit_stepmotor_callback;
+		}
+		else
+			callback.dcmotor_callback = mechunit_dcmotor_callback;
+
+		ret = mechunit_motor_init(&mech_dev->mech_unit_data.unit_motor_data,
 			mech_dev->mech_unit_data.unit_motor_data.motor[i].motor_mask, 
-			(mech_dev->mech_unit_data.unit_motor_data.motor[i].motor_type==MOTOR_STEP_TYPE)?mechunit_stepmotor_callback:mechunit_dcmotor_callback, 
-			mech_dev); 
-		
+			&callback, mech_dev); 
+	
 		if (ret)
 		{
 			return ret;

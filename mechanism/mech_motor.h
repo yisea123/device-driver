@@ -18,6 +18,12 @@
 //-------------------------------------------------------
 #define STEPSPEED_PHASE_NUM 10
 
+typedef  union{
+	    void (*dcmotor_callback)(struct dcmotor *, struct callback_data *);
+	    void (*steppermotor_callback)(struct steppermotor *, struct callback_data *);
+}motor_callback_t;
+
+
 struct motor_data{
 // get from dts(device tree source)
 	unsigned short motor_mask;
@@ -60,7 +66,7 @@ struct motor_data{
     #ifdef MECH_OPTIMIZE_20170606
     int err_status;
     #endif
-    void (*callback)(void *motor, struct callback_data *);
+    motor_callback_t callback;
 };
 
 typedef struct {

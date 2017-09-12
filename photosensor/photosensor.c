@@ -472,7 +472,7 @@ EXPORT_SYMBOL_GPL(photosensor_set_trigger_next);
 int photosensor_clear_trigger_next(struct photosensor *sensor)
 {
 	struct sensor_dev *sensordev = to_sensor_dev(sensor);
-	int ret, dir;
+	int ret;
 
 	if (!sensor)
 		return -EINVAL;
@@ -487,7 +487,7 @@ int photosensor_clear_trigger_next(struct photosensor *sensor)
 		//val &= ~(1<<sensor->dig_bit_index);
 		val = 0;
 		fpga_writel(val, fpga_regs);
-		pr_debug("photosensor_clear_trigger_next:mask---------addr=%x val=%x\n",fpga_regs, val);
+		pr_debug("photosensor_clear_trigger_next:mask---------addr=%x val=%x\n",(int)fpga_regs, val);
 
 		fpga_regs = fpga_io_get(PHOTOSENSOR_CS) + FPGA_REG_SENSOR_DC_COMPARE_MODE;
 		fpga_readl(&val, fpga_regs);
@@ -495,7 +495,7 @@ int photosensor_clear_trigger_next(struct photosensor *sensor)
 		//val &= ~(1<<sensor->dig_bit_index);
 		val = 0;
 		fpga_writel(val, fpga_regs);
-		pr_debug("photosensor_clear_trigger_next:mode------addr=%x val=%x\n",fpga_regs, val);
+		pr_debug("photosensor_clear_trigger_next:mode------addr=%x val=%x\n",(int)fpga_regs, val);
 	}
 	else
 	{
@@ -523,28 +523,27 @@ static int photosensor_probe(struct platform_device *pdev)
 	/* determine photosensor type from DT property */
 	ret = of_property_match_string(node, "type", "digital");
 	if (ret >= 0){
-		dev_dbg(&pdev->dev,"digital:%x\n", sensordev->sensor);
+		dev_dbg(&pdev->dev,"digital:%x\n", *((int *)&(sensordev->sensor)));
 		sensordev->sensor.type = PHOTOSENSOR_DIGITAL;
 	} else 
 	{
 		ret = of_property_match_string(node, "type", "analog");
 		if (ret >= 0){
-			dev_dbg(&pdev->dev, "analog:%x\n", sensordev->sensor);
+			dev_dbg(&pdev->dev, "analog:%x\n", *((int *)&(sensordev->sensor)));
 			sensordev->sensor.type = PHOTOSENSOR_ANALOG;
         } else
 		return -EINVAL;
 	}
 
-#if 1   //add by hl 2016.11.29
 	ret = of_property_match_string(node, "mode", "throughbeam");
 	if (ret >= 0){
-		printk("throughbeam:%x\n", sensordev->sensor);
+		printk("throughbeam:%x\n", *((int *)&(sensordev->sensor)));
 		sensordev->sensor.sensor_mode = PHOTOSENSOR_THROUGHBEAM; 
 	} else 
 	{
 		ret = of_property_match_string(node, "mode", "reflective");
 		if (ret >= 0){
-			printk("reflective:%x\n", sensordev->sensor);
+			printk("reflective:%x\n", *((int *)&(sensordev->sensor)));
 		sensordev->sensor.sensor_mode = PHOTOSENSOR_REFLECTIVE; 
         } else
 		return -EINVAL;
@@ -552,19 +551,18 @@ static int photosensor_probe(struct platform_device *pdev)
 
 	ret = of_property_match_string(node, "app-polarity", "1");
 	if (ret >= 0){
-		printk("app-polarity:%x\n", sensordev->sensor);
+		printk("app-polarity:%x\n", *((int *)&(sensordev->sensor)));
 		sensordev->sensor.sensor_polarity = PHOTOSENSOR_1MEANS_DETECTED; 
 	} else 
 	{
 		ret = of_property_match_string(node, "app-polarity", "0");
 		if (ret >= 0){
-			printk("reflective:%x\n", sensordev->sensor);
+			printk("reflective:%x\n", *((int *)&(sensordev->sensor)));
 		sensordev->sensor.sensor_polarity = PHOTOSENSOR_0MEANS_DETECTED; 
         } else
 		return -EINVAL;
 	}
 
-#endif
 	/* get sensor LED PWM information from DT property */
 	sensordev->led_pwm = devm_pwm_get(&pdev->dev, NULL);
 	if (IS_ERR(sensordev->led_pwm))

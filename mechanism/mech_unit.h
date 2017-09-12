@@ -66,9 +66,7 @@ extern int mechunit_remove(struct platform_device *pdev);
 extern int mechunit_open(struct inode *inode, struct file *filep);
 extern int mechunit_close(struct inode *inode, struct file *filep);
 extern int mechunit_async(int fd, struct file *filep, int mode);
-#ifdef MECH_OPTIMIZE_20170428 
-extern int mechunit_motor_init(mechanism_uint_motor_data_t *punit_motor_data, unsigned short motor_mask, void (*callback)(void *motor, struct callback_data *),struct mechanism_dev_t *mech_dev);
-#endif
+extern int mechunit_motor_init(mechanism_uint_motor_data_t *punit_motor_data, unsigned short motor_mask, motor_callback_t *pcallback, struct mechanism_dev_t *mech_dev);
 
 #define	ARGPTR(cptr)			((cptr)->argptr)
 
