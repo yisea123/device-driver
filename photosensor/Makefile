@@ -1,7 +1,15 @@
 KDIR := ../../kernel_root
 PWD := $(shell pwd)
 # kernel modules
-obj-m := fpga_adc.o fpga_gpio.o fpga_pwm.o photosensor.o
+
+ifeq ($(machine),mx6q_voucher_scanner)
+	obj-m := fpga_adc.o fpga_gpio.o fpga_pwm.o photosensor.o
+endif
+
+ifeq ($(machine),mx6ul_voucher_dispenser)
+	obj-m := photosensor.o
+	photosensor-objs := dispenser_photosensor.o
+endif
 
 #specify flags for the module compilation
 EXTRA_CFLAGS=-g -O0 -D CONFIG_FPGA_EIM -D DEBUG
