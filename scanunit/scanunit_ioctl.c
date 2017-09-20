@@ -135,6 +135,7 @@ static long scanunit_io_get_digitiser_config(unsigned long arg)
 	tmpconfig.regconfig = kzalloc(datasize, GFP_KERNEL); 
 	if (IS_ERR(tmpconfig.regconfig))
 		return -ENOMEM;
+	memcpy(tmpconfig.regconfig, config_arg.config.regconfig, datasize);
 
 	rs = imagedigitiser_get_config(image_digitisers[config_arg.device], &tmpconfig);
 	if (IS_ERR_VALUE(rs))
