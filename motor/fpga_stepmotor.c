@@ -263,7 +263,7 @@ static int fpga_stepmotor_config(struct steppermotor *motor, const struct steppe
 
 		// load acceleration table of speed 1
 		addr = fpga_ram_load_ramptable(ptr_ramp, MOTOR_TABLE_RAMP_LIMIT, FPGA_RAM_MOTOR_TABLE_RAMP_ACCEL, speedtable); 
-		dev_info(motor->dev, "load acceleration ramp table (speed1) @ %08x, ret=%08x", (u32)ptr_ramp, (u32)addr);
+		dev_dbg(motor->dev, "load acceleration ramp table (speed1) @ %08x, ret=%08x", (u32)ptr_ramp, (u32)addr);
 		if (IS_ERR(addr))
 			goto err_handling;
 		else
@@ -328,7 +328,7 @@ static int fpga_stepmotor_config(struct steppermotor *motor, const struct steppe
 			// load speed-shift ramp table
 			flag = (speed1 < speed2) ? FPGA_RAM_MOTOR_TABLE_RAMP_ACCEL : FPGA_RAM_MOTOR_TABLE_RAMP_DECEL;
 			addr = fpga_ram_load_ramptable(ptr_ramp, MOTOR_TABLE_RAMP_LIMIT, flag, shifttable);
-			dev_info(motor->dev, "load speed-shift ramp table @ %08x, ret=%08x", (u32)ptr_ramp, (u32)addr);
+			dev_dbg(motor->dev, "load speed-shift ramp table @ %08x, ret=%08x", (u32)ptr_ramp, (u32)addr);
 			if (IS_ERR(addr))
 				goto err_handling;
 			else
@@ -341,17 +341,17 @@ static int fpga_stepmotor_config(struct steppermotor *motor, const struct steppe
 		}
 		// load deceleration ramp table
 		addr = fpga_ram_load_ramptable(ptr_ramp, MOTOR_TABLE_RAMP_LIMIT, FPGA_RAM_MOTOR_TABLE_RAMP_DECEL, speedtable);
-		dev_info(motor->dev, "load deceleration ramp table @ %08x, ret=%08x", (u32)ptr_ramp, (u32)addr);
+		dev_dbg(motor->dev, "load deceleration ramp table @ %08x, ret=%08x", (u32)ptr_ramp, (u32)addr);
 err_handling:
 
 		// load stop tables
 		ptr_ramp = motordev->ram_base + FPGA_RAM_MOTOR_TABLE_STOPHIGH;
 		addr = fpga_ram_load_ramptable(ptr_ramp, MOTOR_TABLE_STOPHIGH_LIMIT, 0, stoptable_high);
-		dev_info(motor->dev, "load stop table HIGH @ %08x, ret=%08x", (u32)ptr_ramp, (u32)addr);
+		dev_dbg(motor->dev, "load stop table HIGH @ %08x, ret=%08x", (u32)ptr_ramp, (u32)addr);
 
 		ptr_ramp = motordev->ram_base + FPGA_RAM_MOTOR_TABLE_STOPLOW;
 		addr = fpga_ram_load_ramptable(ptr_ramp, MOTOR_TABLE_STOPLOW_LIMIT, 0, stoptable_low);
-		dev_info(motor->dev, "load stop tables LOW @ %08x, ret=%08x", (u32)ptr_ramp, (u32)addr);
+		dev_dbg(motor->dev, "load stop tables LOW @ %08x, ret=%08x", (u32)ptr_ramp, (u32)addr);
 	}
 
 	/* setup motion direction */
@@ -523,7 +523,7 @@ static int fpga_stepmotor_probe(struct platform_device *pdev)
 		return PTR_ERR(motordev->mmio_base);
 
 	motordev->mmio_base += reg[1];
-	dev_dbg(&pdev->dev, "mmio_base = %08X.\n", (u32)motordev->mmio_base);
+	dev_info(&pdev->dev, "mmio_base = %08X.\n", (u32)motordev->mmio_base);
 
 	ret = of_property_read_u32_array(np, "ram-reg", reg, 3);
 	if (IS_ERR_VALUE(ret)) {
@@ -537,7 +537,7 @@ static int fpga_stepmotor_probe(struct platform_device *pdev)
 
 	motordev->ram_base += reg[1];
 	motordev->ram_size = reg[2];
-	dev_dbg(&pdev->dev, "ram_base = %08X, ram_size = %08X.\n", (u32)motordev->ram_base, (u32)motordev->ram_size);
+	dev_info(&pdev->dev, "ram_base = %08X, ram_size = %08X.\n", (u32)motordev->ram_base, (u32)motordev->ram_size);
 
 	ret = of_property_read_u32(np, "mask", &motordev->mask);
 	if (ret) {
@@ -570,7 +570,7 @@ static int fpga_stepmotor_probe(struct platform_device *pdev)
 
 	ret = of_property_read_u32(np, "stepping", &val);
 	if (ret) {
-		dev_info(&pdev->dev, "Failed to parse FPGA steppermotor stepping multiple\n");
+		dev_err(&pdev->dev, "Failed to parse FPGA steppermotor stepping multiple\n");
 		return ret;
 	}
 	if (val!=1 && val!=2 && val!=4 && val!=8 && val!=16 && val!=32) {
@@ -605,21 +605,21 @@ static int fpga_stepmotor_probe(struct platform_device *pdev)
 	}
 
 #ifdef DEBUG
-	dev_info(&pdev->dev, "steppermotor features:\n");
+	dev_dbg(&pdev->dev, "steppermotor features:\n");
 	{
 		int i;
 
-		printk(KERN_INFO "maximum steps = %d\n", motordev->motor.feature.max_steps); 
-		printk(KERN_INFO "pull-in speed = %d SPS\n", motordev->motor.feature.pullin_speed);
-		printk(KERN_INFO "supports %d speeds:\n", motordev->motor.feature.num_speed);
+		printk(KERN_DEBUG "maximum steps = %d\n", motordev->motor.feature.max_steps); 
+		printk(KERN_DEBUG "pull-in speed = %d SPS\n", motordev->motor.feature.pullin_speed);
+		printk(KERN_DEBUG "supports %d speeds:\n", motordev->motor.feature.num_speed);
 		for (i = 0; i < motordev->motor.feature.num_speed; i++)
-			printk(KERN_INFO "%d SPS, accel_steps = %d, decel_steps = %d\n", motordev->motor.feature.speeds[i].speed,
+			printk(KERN_DEBUG "%d SPS, accel_steps = %d, decel_steps = %d\n", motordev->motor.feature.speeds[i].speed,
 				motordev->motor.feature.speeds[i].accel_steps, motordev->motor.feature.speeds[i].decel_steps);
-		printk(KERN_INFO "supports %d speed-shifts:\n", motordev->motor.feature.num_speedshift);
+		printk(KERN_DEBUG "supports %d speed-shifts:\n", motordev->motor.feature.num_speedshift);
 		for (i = 0; i < motordev->motor.feature.num_speedshift; i++)
-			printk(KERN_INFO "%d -> %d SPS, shift-steps = %d\n", motordev->motor.feature.speedshifts[i].speed1,
+			printk(KERN_DEBUG "%d -> %d SPS, shift-steps = %d\n", motordev->motor.feature.speedshifts[i].speed1,
 				motordev->motor.feature.speedshifts[i].speed2, motordev->motor.feature.speedshifts[i].steps);
-		printk(KERN_INFO "\n");
+		printk(KERN_DEBUG "\n");
 	}
 #endif
 	ret = fpga_stepmotor_hw_init(motordev);
