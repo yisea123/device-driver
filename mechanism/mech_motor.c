@@ -27,7 +27,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 
 	motor_trigger_phase_t *motor_trigger_phase;
 
-	pr_debug("step_motor_start.................speed_phase_num=%d\n", pmotor_mov->speed_phase_num);
+	printk(KERN_DEBUG "step_motor_start.................speed_phase_num=%d\n", pmotor_mov->speed_phase_num);
 	if ((pmotor_mov->speed_phase_num > STEPSPEED_PHASE_NUM) || (pmotor_mov->trigger_phase_num > STEPSPEED_PHASE_NUM)) {
 		return -1;
 	}
@@ -51,8 +51,8 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 		pmotor_data->speedinfo[i].speed = pmotor_data->pmotor_mov->motor_speed_phase[i].speed;
 		pmotor_data->speedinfo[i].steps = pmotor_data->pmotor_mov->motor_speed_phase[i].speed_steps;
 		pmotor_data->step_config.steps_to_run += pmotor_data->pmotor_mov->motor_speed_phase[i].speed_steps;
-		pr_debug("speed_phase_%d speed_steps:%d %d\n", i, pmotor_data->pmotor_mov->motor_speed_phase[i].speed_steps, pmotor_mov->motor_speed_phase[i].speed_steps);
-		pr_debug("speed_phase_%d speed:%d %d\n", i, pmotor_data->pmotor_mov->motor_speed_phase[i].speed, pmotor_mov->motor_speed_phase[i].speed);
+		printk(KERN_DEBUG "speed_phase_%d speed_steps:%d %d\n", i, pmotor_data->pmotor_mov->motor_speed_phase[i].speed_steps, pmotor_mov->motor_speed_phase[i].speed_steps);
+		printk(KERN_DEBUG "speed_phase_%d speed:%d %d\n", i, pmotor_data->pmotor_mov->motor_speed_phase[i].speed, pmotor_mov->motor_speed_phase[i].speed);
 		if (i<pmotor_mov->speed_phase_num-1){
 			pmotor_data->speedinfo[i].nextspeed = &pmotor_data->speedinfo[i+1];
 		}
@@ -60,14 +60,14 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 			pmotor_data->speedinfo[i].nextspeed = NULL;
 	}
 
-	pr_debug("step_motor_start:dir=%d num_speed=%d steps_to_run=%d\n", pmotor_data->step_config.dir, pmotor_data->step_config.num_speed, pmotor_data->step_config.steps_to_run);
-	pr_debug("step_motor_start:speedinfo： speed=%d steps=%d \n", pmotor_data->step_config.speedinfo[0].speed, pmotor_data->step_config.speedinfo[0].steps); 
-	pr_debug("psteppermotor=%x\n", (int)pmotor_data->motor_dev.psteppermotor);
+	printk(KERN_DEBUG "step_motor_start:dir=%d num_speed=%d steps_to_run=%d\n", pmotor_data->step_config.dir, pmotor_data->step_config.num_speed, pmotor_data->step_config.steps_to_run);
+	printk(KERN_DEBUG "step_motor_start:speedinfo： speed=%d steps=%d \n", pmotor_data->step_config.speedinfo[0].speed, pmotor_data->step_config.speedinfo[0].steps); 
+	printk(KERN_DEBUG "psteppermotor=%x\n", (int)pmotor_data->motor_dev.psteppermotor);
 
 	ret=steppermotor_set_config(pmotor_data->motor_dev.psteppermotor, &(pmotor_data->step_config));
 	if(ret)
 	{
-		pr_debug("step_motor_start:steppermotor_set_config error!\n");
+		printk(KERN_ERR "step_motor_start:steppermotor_set_config error!\n");
 		ret = -RESN_MECH_ERR_MOTOR_MOVE_SET_CONFIG_ERR;
 		motormove_err_callback(pmotor_data, ret);
 		return ret;
@@ -82,7 +82,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 	ret=steppermotor_set_sensor_sel_mask(pmotor_data->motor_dev.psteppermotor, sensor_mask);
 	if(ret)
 	{
-		pr_debug("step_motor_start:steppermotor_set_sensor_sel_mask error!\n");
+		printk(KERN_ERR "step_motor_start:steppermotor_set_sensor_sel_mask error!\n");
 		ret = -RESN_MECH_ERR_MOTOR_MOVE_SET_SENMASK_ERR;
 		motormove_err_callback(pmotor_data, ret);
 		return ret;
@@ -90,7 +90,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 
 
 	if (pmotor_data->pmotor_mov->trigger_phase_num){
-		pr_debug("step_motor_start:triger_num=%d triger_mask=%x  sen_step=%ld\n", 
+		printk(KERN_DEBUG "step_motor_start:triger_num=%d triger_mask=%x  sen_step=%ld\n", 
 			pmotor_data->pmotor_mov->trigger_phase_num, 
 			pmotor_mov->motor_trigger_phase[0].sen_mask, pmotor_mov->motor_trigger_phase[0].to_trigger_steps);
 
@@ -117,7 +117,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 		if(ret)
 		{
 			pmotor_data->moving_status = MOTOR_MOVE_STATUS_INUSE; 
-			pr_debug("step_motor_start:steppermotor_start error!\n");
+			printk(KERN_ERR "step_motor_start:steppermotor_start error!\n");
 			ret = -RESN_MECH_ERR_MOTOR_MOVE_START_ERR;
 			motormove_err_callback(pmotor_data, ret);
 			return ret;
@@ -129,13 +129,12 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 				pmotor_data->motor_phase_accout++;
 			}
 			
-			pr_debug("%dphase start to wait \n", i);
-			//timeout_ret=wait_for_completion_timeout(&(pmotor_data->motor_phase_completion), COMPLETION_TIMEOUT);
+			printk(KERN_DEBUG "%dphase start to wait \n", i);
 			timeout_ret = wait_for_completion_timeout(&(pmotor_data->motor_phase_completion), PHASE_COMPLETION_TIMEOUT(pmotor_data->pmotor_mov->motor_trigger_phase[i].to_trigger_steps)); 
-			pr_debug("timeout_ret=%d \n", timeout_ret);
+			printk(KERN_DEBUG "timeout_ret=%d \n", timeout_ret);
 			if(!timeout_ret)
 			{
-				pr_debug("step_motor_start: %dphase timeout!\n", i);
+				printk(KERN_ERR "step_motor_start: %dphase timeout!\n", i);
 				ret = -RESN_MECH_ERR_MOTOR_WAIT_TRIGER_TIMEOUT;
 				motormove_err_callback(pmotor_data, ret);
 
@@ -146,14 +145,14 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 				return ret;
 			}
 			else{
-				pr_debug("%dphase end\n", i);
+				printk(KERN_DEBUG "%dphase end\n", i);
 				pmotor_data->motor_phase_accout--;
 				
 
 				ret=sensor_clear_trigger_next(punit_sensor_data, motor_trigger_phase->sen_mask);
 				if(ret)
 				{
-					 printk("step_motor_start:sensor_clear_trigger_next error!\n");
+					 printk(KERN_ERR "step_motor_start:sensor_clear_trigger_next error!\n");
 					 ret = -RESN_MECH_ERR_MOTOR_SENSOR_CONFIG_ERR;
 					 motormove_err_callback(pmotor_data, ret);
 					 return ret;
@@ -161,12 +160,12 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 			}
 
 			if(pmotor_data->moving_status == MOTOR_MOVE_STATUS_STOP){
-				printk("step_motor_start:next phase stoped!moving_status=%x stoping_status=%lx\n", pmotor_data->moving_status, pmotor_data->stoping_status);
+				printk(KERN_INFO "step_motor_start:next phase stoped!moving_status=%x stoping_status=%lx\n", pmotor_data->moving_status, pmotor_data->stoping_status);
 			
 				ret=sensor_clear_trigger_next(punit_sensor_data, motor_trigger_phase->sen_mask);
 				if(ret)
 				{
-					 printk("step_motor_start:sensor_clear_trigger_next error!\n");
+					 printk(KERN_ERR "step_motor_start:sensor_clear_trigger_next error!\n");
 					 
 					 ret = -RESN_MECH_ERR_MOTOR_SENSOR_CONFIG_ERR;
 					 motormove_err_callback(pmotor_data, ret);
@@ -193,7 +192,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 			}
 		}
 	}
-	pr_debug("step_motor_start.................over!\n");
+	printk(KERN_DEBUG "step_motor_start.................over!\n");
 	return ret;
 }
 #else
@@ -424,7 +423,7 @@ static unsigned char bstep_motor_stoped(struct motor_data *pmotor_data)
 	if (IS_ERR_VALUE(status)) {
 		return 0;
 	}
-	pr_debug("bstep_motor_stoped:status=%x\n", status);
+	printk(KERN_DEBUG "bstep_motor_stoped:status=%x\n", status);
 	if (steppermotor_is_running(status))
 		return 0;
 	return 1;
@@ -436,7 +435,7 @@ static int step_motor_wait_stop(struct motor_data *pmotor_data)
 	int ret=0;
 
 	#ifdef MECH_OPTIMIZE_20170515
-	pr_debug("step_motor_wait_stop pmotor_data=%x moving_status=%x stoping_status=%lx\n", (int)pmotor_data, pmotor_data->moving_status, pmotor_data->stoping_status); 
+	printk(KERN_DEBUG "step_motor_wait_stop pmotor_data=%x moving_status=%x stoping_status=%lx\n", (int)pmotor_data, pmotor_data->moving_status, pmotor_data->stoping_status); 
     
 	if (pmotor_data->moving_status == MOTOR_MOVE_STATUS_RUNNING) 
 	#else
@@ -446,11 +445,11 @@ static int step_motor_wait_stop(struct motor_data *pmotor_data)
 	#endif
 	{
 		pmotor_data->motor_comp_accout++;
-		pr_debug("step_motor_wait_stop 1 &motor_comp_accout=%d \n",pmotor_data->motor_comp_accout); 
+		printk(KERN_DEBUG "step_motor_wait_stop 1 &motor_comp_accout=%d \n",pmotor_data->motor_comp_accout); 
 		//if(!(timeout_ret=wait_for_completion_timeout(&(pmotor_data->motor_completion), COMPLETION_TIMEOUT)))
 		if(!(timeout_ret=wait_for_completion_timeout(&(pmotor_data->motor_completion), COMPLETION_TIMEOUT(pmotor_data->step_config.steps_to_run))))
 		{
-			printk("step_motor_wait_stop timeout!\n");
+			printk(KERN_ERR "step_motor_wait_stop timeout!\n");
 			
 			ret = -RESN_MECH_ERR_MOTOR_WAIT_STOP_TIMEOUT;
 			motormove_err_callback(pmotor_data, ret);
@@ -459,26 +458,17 @@ static int step_motor_wait_stop(struct motor_data *pmotor_data)
 		}
 		pmotor_data->motor_comp_accout--;
 
-		pr_debug("step_motor_wait_stop1\n");
+		printk(KERN_DEBUG "step_motor_wait_stop1\n");
 		if(pmotor_data->motor_comp_accout == 0)
 			init_completion(&(pmotor_data->motor_completion));
-		pr_debug("step_motor_wait_stop2\n");
+		printk(KERN_DEBUG "step_motor_wait_stop2\n");
 	}
 
-	/*ret=sensor_clear_trigger_next(punit_sensor_data, motor_trigger_phase->sen_mask);
-	if(ret)
-	{
-		 printk("step_motor_wait_stop:step_motor_start:sensor_clear_trigger_next error!\n");
-			 
-		 ret = -RESN_MECH_ERR_MOTOR_SENSOR_CONFIG_ERR;
-		 motormove_err_callback(pmotor_data, ret);
-		 return ret;
-	}*/
 
-	pr_debug("step_motor_wait_stop:stoping_status=%lx %lx %d", pmotor_data->stoping_status, (pmotor_data->stoping_status & MOTOR_STOP_MASK), ((pmotor_data->stoping_status & MOTOR_STOP_MASK) ==MOTOR_STOP_BY_ABNORMAL));
+	printk(KERN_DEBUG "step_motor_wait_stop:stoping_status=%lx %lx %d", pmotor_data->stoping_status, (pmotor_data->stoping_status & MOTOR_STOP_MASK), ((pmotor_data->stoping_status & MOTOR_STOP_MASK) ==MOTOR_STOP_BY_ABNORMAL));
 	if ((pmotor_data->stoping_status & MOTOR_STOP_MASK) ==MOTOR_STOP_BY_ABNORMAL) {
 		ret = pmotor_data->err_status;
-		pr_debug("ret=%x\n",ret);
+		printk(KERN_DEBUG "ret=%x\n",ret);
 		
 	}
 	else
@@ -497,18 +487,18 @@ static int brushdc_motor_start(mechanism_uint_motor_data_t *punit_motor_data, me
 	unsigned char i;
 	int ret=0;
 
-	pr_debug("brushdc_motor_start.................speed_phase_num=%d\n", pmotor_mov->speed_phase_num);
+	printk(KERN_DEBUG "brushdc_motor_start.................speed_phase_num=%d\n", pmotor_mov->speed_phase_num);
 
 	pmotor_data->pmotor_mov = pmotor_mov;
 
 	pmotor_data->dc_config.dir = dir;
 
-	pr_debug("brushdc_motor_start:dir=%d \n", pmotor_data->dc_config.dir);
-	pr_debug("pdcmotor=%x\n", (int)pmotor_data->motor_dev.pdcmotor);
+	printk(KERN_DEBUG "brushdc_motor_start:dir=%d \n", pmotor_data->dc_config.dir);
+	printk(KERN_DEBUG "pdcmotor=%x\n", (int)pmotor_data->motor_dev.pdcmotor);
 	ret=dcmotor_set_config(pmotor_data->motor_dev.pdcmotor, &(pmotor_data->dc_config));
 	if(ret)
 	{
-		printk(KERN_INFO "brushdc_motor_start:dcmotor_set_config error!\n");
+		printk(KERN_ERR "brushdc_motor_start:dcmotor_set_config error!\n");
 		
 		ret = -RESN_MECH_ERR_MOTOR_MOVE_SET_CONFIG_ERR;
 		motormove_err_callback(pmotor_data, ret);
@@ -523,7 +513,7 @@ static int brushdc_motor_start(mechanism_uint_motor_data_t *punit_motor_data, me
 	pmotor_data->err_status = 0;
 	#endif
     
-	pr_debug("brushdc_motor_start:triger_num=%d", pmotor_data->pmotor_mov->trigger_phase_num);
+	printk(KERN_DEBUG "brushdc_motor_start:triger_num=%d", pmotor_data->pmotor_mov->trigger_phase_num);
    
 	for (i = 0; i < pmotor_data->pmotor_mov->trigger_phase_num; i++) {
 		if(pmotor_data->pmotor_mov->motor_trigger_phase[i].sen_mask){
@@ -531,7 +521,7 @@ static int brushdc_motor_start(mechanism_uint_motor_data_t *punit_motor_data, me
                                                pmotor_data->pmotor_mov->motor_trigger_phase[i].motor_sen_flag);
 			if(ret)
                         {
-                                 printk(KERN_INFO "brushdc_motor_start:sensor_set_trigger_next error!\n");
+                                 printk(KERN_ERR "brushdc_motor_start:sensor_set_trigger_next error!\n");
 				 ret = -RESN_MECH_ERR_MOTOR_MOVE_SET_TRIGGER_NEXT;
 				 motormove_err_callback(pmotor_data, ret);
 				 return ret;
@@ -543,20 +533,20 @@ static int brushdc_motor_start(mechanism_uint_motor_data_t *punit_motor_data, me
 	ret=dcmotor_start(pmotor_data->motor_dev.pdcmotor);
 	if(ret)
 	{
-		printk(KERN_INFO "brushdc_motor_start:dcmotor_start error!\n");
+		printk(KERN_ERR "brushdc_motor_start:dcmotor_start error!\n");
 		ret = -RESN_MECH_ERR_MOTOR_MOVE_START_ERR;
 		motormove_err_callback(pmotor_data, ret);
 		return ret;
 	}
 	pmotor_data->phase_current_num++;
 	pmotor_data->moving_status = MOTOR_MOVE_STATUS_RUNNING; 
-	printk("brushdc_motor_start.................over!\n");
+	printk(KERN_INFO "brushdc_motor_start.................over!\n");
 	return ret;
 }
 
 void brushdc_motor_stop(struct motor_data *pmotor_data )
 {
-	pr_debug("brushdc_motor_stop\n");
+	printk(KERN_DEBUG "brushdc_motor_stop\n");
 	dcmotor_stop(pmotor_data->motor_dev.pdcmotor); 
 }
 
@@ -564,7 +554,7 @@ static unsigned char bbrushdc_motor_stoped(struct motor_data *pmotor_data)
 {
 	int status = dcmotor_status(pmotor_data->motor_dev.pdcmotor);
 
-	pr_debug("bbrushdc_motor_stoped\n");
+	printk(KERN_DEBUG "bbrushdc_motor_stoped\n");
 	if(dcmotor_is_running(status))
 		return 0;
 	return 1;
@@ -583,14 +573,14 @@ static int brushdc_motor_wait_stop(struct motor_data *pmotor_data)
 	#endif
 		return ret;
 
-	pr_debug("brushdc_motor_wait_stop:motor_comp_accout1=%d", pmotor_data->motor_comp_accout);
+	//printk(KERN_DEBUG "brushdc_motor_wait_stop:motor_comp_accout1=%d", pmotor_data->motor_comp_accout);
 	pmotor_data->motor_comp_accout++;
-	pr_debug("brushdc_motor_wait_stop:motor_comp_accout2=%d", pmotor_data->motor_comp_accout);
+	//printk(KERN_DEBUG "brushdc_motor_wait_stop:motor_comp_accout2=%d", pmotor_data->motor_comp_accout);
 
-	pr_debug("brushdc_motor_wait_stop %x %x %s\n", (int)pmotor_data, pmotor_data->motor_comp_accout, pmotor_data->motor_name); 
-	pr_debug("motor_completion =%x motor_comp_accout=%d\n",(int)&(pmotor_data->motor_completion), pmotor_data->motor_comp_accout);
+	//printk(KERN_DEBUG "brushdc_motor_wait_stop %x %x %s\n", (int)pmotor_data, pmotor_data->motor_comp_accout, pmotor_data->motor_name); 
+	//printk(KERN_DEBUG "motor_completion =%x motor_comp_accout=%d\n",(int)&(pmotor_data->motor_completion), pmotor_data->motor_comp_accout);
 
-	pr_debug("brushdc_motor_wait_stop & moving_status=%x\n", pmotor_data->moving_status);
+	//printk(KERN_DEBUG "brushdc_motor_wait_stop & moving_status=%x\n", pmotor_data->moving_status);
 
 	if (pmotor_data->pmotor_mov->motor_trigger_phase[0].sen_mask)
 		time = pmotor_data->pmotor_mov->motor_trigger_phase[0].to_trigger_steps*3/2;
@@ -613,7 +603,7 @@ static int brushdc_motor_wait_stop(struct motor_data *pmotor_data)
 			
 		}
 		brushdc_motor_stop(pmotor_data); 	//because stop do not cause interrupt, so brushdc_motor_stop must before callback.
-		//printk("brushdc_motor_wait_stop1& moving_status=%x\n", pmotor_data->moving_status);
+		//printk(KERN_INFO "brushdc_motor_wait_stop1& moving_status=%x\n", pmotor_data->moving_status);
 		
 		if (!pmotor_data->pmotor_mov->motor_trigger_phase[0].sen_mask) 	//for (sen_mask==0)，need to stop motor by software
 			pmotor_data->callback.dcmotor_callback(pmotor_data->motor_dev.pdcmotor, &(pmotor_data->motor_dev.pdcmotor->callbackdata));
@@ -621,7 +611,7 @@ static int brushdc_motor_wait_stop(struct motor_data *pmotor_data)
 		//else
 		//	complete_all(&(pmotor_data->motor_completion)); 
 		
-		//printk("brushdc_motor_wait_stop2& moving_status=%x\n", pmotor_data->moving_status);
+		//printk(KERN_INFO "brushdc_motor_wait_stop2& moving_status=%x\n", pmotor_data->moving_status);
 	}
 	else
 	{
@@ -631,7 +621,7 @@ static int brushdc_motor_wait_stop(struct motor_data *pmotor_data)
 	}
 	pmotor_data->motor_comp_accout--;
 
-	pr_debug("brushdc_motor_wait_stop3& moving_status=%x\n", pmotor_data->moving_status);
+	printk(KERN_DEBUG "brushdc_motor_wait_stop3& moving_status=%x\n", pmotor_data->moving_status);
 
 
 	if(pmotor_data->motor_comp_accout == 0)
@@ -645,7 +635,7 @@ static int brushdc_motor_wait_stop(struct motor_data *pmotor_data)
 	pmotor_data->moving_status |= MOTOR_MOVE_STATUS_STOP;
 	#endif
 	#endif
-	pr_debug("brushdc_motor_wait_stop4\n");
+	printk(KERN_DEBUG "brushdc_motor_wait_stop4\n");
 	return ret;
 }
 
@@ -657,15 +647,15 @@ int motor_move_init(mechanism_uint_motor_data_t *punit_motor_data, unsigned shor
 	struct motor_data *pmotor_data;
 	unsigned char i;
 
-	//pr_debug("motor_init.............motor_mask=%x\n", motor_mask);
+	//printk(KERN_DEBUG "motor_init.............motor_mask=%x\n", motor_mask);
 
 	motor_get_data(punit_motor_data, motor_mask, pmotor_data, i);
 	if (i==punit_motor_data->motor_num) {
 		return -RESN_MECH_ERR_MOTOR_GETDATA;
 	}
-	//pr_debug("motor_init:pmotor_data=%x %x \n", pmotor_data, &((punit_data)->motor[i]));	
-	//pr_debug("motor_completion=%x motor_mask=%x motor_name=%s\n", &pmotor_data->motor_completion, pmotor_data->motor_mask, pmotor_data->motor_name); 
-	//pr_debug("motor_num=%d i=%d motor_completion=%x motor_mask=%x motor_name=%s\n", (punit_data)->motor_num, i, &(punit_data)->motor[i].motor_completion, (punit_data)->motor[i].motor_mask, (punit_data)->motor[i].motor_name); 
+	//printk(KERN_DEBUG "motor_init:pmotor_data=%x %x \n", pmotor_data, &((punit_data)->motor[i]));	
+	//printk(KERN_DEBUG "motor_completion=%x motor_mask=%x motor_name=%s\n", &pmotor_data->motor_completion, pmotor_data->motor_mask, pmotor_data->motor_name); 
+	//printk(KERN_DEBUG "motor_num=%d i=%d motor_completion=%x motor_mask=%x motor_name=%s\n", (punit_data)->motor_num, i, &(punit_data)->motor[i].motor_completion, (punit_data)->motor[i].motor_mask, (punit_data)->motor[i].motor_name); 
 
 	if (pmotor_data->moving_status&(MOTOR_MOVE_STATUS_INUSE|MOTOR_MOVE_STATUS_RUNNING)) {
 		return -RESN_MECH_ERR_MOTOR_BUSY;
@@ -695,7 +685,7 @@ int motor_start(mechanism_uint_motor_data_t *punit_motor_data, mechanism_uint_se
 	struct motor_data *pmotor_data;
 	unsigned char i;
 
-	pr_debug("motor_start.................\n");
+	printk(KERN_DEBUG "motor_start.................\n");
     
 	motor_get_data(punit_motor_data, motor_mask, pmotor_data, i);
 	if (i==punit_motor_data->motor_num) {
@@ -714,7 +704,7 @@ int motor_start(mechanism_uint_motor_data_t *punit_motor_data, mechanism_uint_se
 	default:
 		break;
 	}
-	pr_debug(KERN_INFO "motor_start.................over!\n");
+	printk(KERN_DEBUG  "motor_start.................over!\n");
 	return 0;
 }
 EXPORT_SYMBOL_GPL(motor_start);
@@ -725,20 +715,20 @@ int motor_stop(mechanism_uint_motor_data_t *punit_motor_data, unsigned short mot
 	unsigned char i;
 	int ret=0;
 
-	pr_debug("1.motor_stop\n");
+	//printk(KERN_DEBUG "1.motor_stop\n");
 	motor_get_data(punit_motor_data, motor_mask, pmotor_data, i);
 	if (i==punit_motor_data->motor_num) {
 		return -RESN_MECH_ERR_MOTOR_GETDATA;
 	}
     	
-	pr_debug("2.motor_stop\n");
+	//printk(KERN_DEBUG "2.motor_stop\n");
 	switch(pmotor_data->motor_type)
 	{
 	case MOTOR_STEP_TYPE:
 		if(bstep_motor_stoped(pmotor_data))
 			break;
 		pmotor_data->moving_status |= MOTOR_STOP_BY_SOFT_START; 
-		pr_debug("motor_stop pmotor_data=%x moving_status=%x\n", (unsigned int)pmotor_data, pmotor_data->moving_status);
+		printk(KERN_DEBUG "motor_stop pmotor_data=%x moving_status=%x\n", (unsigned int)pmotor_data, pmotor_data->moving_status);
 		step_motor_stop(pmotor_data);
 		//step_motor_wait_stop(pmotor_data);
 		break;
@@ -785,14 +775,14 @@ int motor_wait_stop(mechanism_uint_motor_data_t *punit_motor_data, mechanism_uin
 	unsigned char i;
 	int ret=0;
 
-	pr_debug("motor_wait_stop\n");
+	printk(KERN_DEBUG "motor_wait_stop\n");
 
 	motor_get_data(punit_motor_data, motor_mask, pmotor_data, i);
 	if (i==punit_motor_data->motor_num) {
 		return -RESN_MECH_ERR_MOTOR_GETDATA;
 	}
     
-	pr_debug("motor_type=%x \n", pmotor_data->motor_type);
+	printk(KERN_DEBUG "motor_type=%x \n", pmotor_data->motor_type);
 
 	
 	switch(pmotor_data->motor_type)
@@ -811,7 +801,7 @@ int motor_wait_stop(mechanism_uint_motor_data_t *punit_motor_data, mechanism_uin
 		break;
 	}
 	
-	pr_debug("motor_wait_stop over!\n");
+	printk(KERN_DEBUG "motor_wait_stop over!\n");
 	return ret;
 }
 EXPORT_SYMBOL_GPL(motor_wait_stop);
@@ -823,14 +813,14 @@ int motor_get_feature(mechanism_uint_motor_data_t *punit_motor_data, motor_featu
 	unsigned char i;
 	int ret=0;
 
-	pr_debug("motor_get_feature\n");
+	printk(KERN_DEBUG "motor_get_feature\n");
 
 	motor_get_data(punit_motor_data, p_motorfeature->motor_mask, pmotor_data, i); 
 	if (i==punit_motor_data->motor_num) {
 		return -RESN_MECH_ERR_MOTOR_GETDATA;
 	}
     
-	pr_debug("motor_type=%x \n", pmotor_data->motor_type);
+	printk(KERN_DEBUG "motor_type=%x \n", pmotor_data->motor_type);
 	strcpy(p_motorfeature->motor_name, pmotor_data->motor_name); 
 
 	//for temp. should get from steppermotor_get_feature endly
@@ -873,13 +863,11 @@ int motor_lock(mechanism_uint_motor_data_t *punit_motor_data, unsigned short mot
 	unsigned char i;
 	int ret=0;
 
-	pr_debug("1.motor_lock\n");
 	motor_get_data(punit_motor_data, motor_mask, pmotor_data, i);
 	if (i==punit_motor_data->motor_num) {
 		return -RESN_MECH_ERR_MOTOR_GETDATA;
 	}
     	
-	pr_debug("2.motor_lock\n");
 	switch(pmotor_data->motor_type)
 	{
 	case MOTOR_STEP_TYPE:
@@ -901,13 +889,11 @@ int motor_unlock(mechanism_uint_motor_data_t *punit_motor_data, unsigned short m
 	unsigned char i;
 	int ret=0;
 
-	pr_debug("1.motor_unlock\n");
 	motor_get_data(punit_motor_data, motor_mask, pmotor_data, i);
 	if (i==punit_motor_data->motor_num) {
 		return -RESN_MECH_ERR_MOTOR_GETDATA;
 	}
     	
-	pr_debug("2.motor_unlock\n");
 	switch(pmotor_data->motor_type)
 	{
 	case MOTOR_STEP_TYPE:
@@ -929,13 +915,11 @@ int motor_skewsteps_set(mechanism_uint_motor_data_t *punit_motor_data, unsigned 
 	unsigned char i;
 	int ret=0;
 
-	pr_debug("1.motor_skewsteps_set\n");
 	motor_get_data(punit_motor_data, motor_mask, pmotor_data, i);
 	if (i==punit_motor_data->motor_num) {
 		return -RESN_MECH_ERR_MOTOR_GETDATA;
 	}
     	
-	pr_debug("2.motor_skewsteps_set\n");
 	switch(pmotor_data->motor_type)
 	{
 	case MOTOR_STEP_TYPE:
@@ -957,13 +941,11 @@ int motor_get_running_steps(mechanism_uint_motor_data_t *punit_motor_data, unsig
 	unsigned char i;
 	int ret=0;
 
-	pr_debug("1.motor_get_running_steps\n");
 	motor_get_data(punit_motor_data, motor_mask, pmotor_data, i);
 	if (i==punit_motor_data->motor_num) {
 		return -RESN_MECH_ERR_MOTOR_GETDATA;
 	}
     	
-	pr_debug("2.motor_get_running_steps\n");
 	switch(pmotor_data->motor_type)
 	{
 	case MOTOR_STEP_TYPE:

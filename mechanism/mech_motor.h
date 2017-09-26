@@ -94,7 +94,7 @@ static inline void motormove_err_callback(struct motor_data *pmotor_data, int re
 	case -RESN_MECH_ERR_MOTOR_MOVE_SET_TRIGGER_NEXT:
 	case -RESN_MECH_ERR_MOTOR_MOVE_START_ERR:
 	case -RESN_MECH_ERR_MOTOR_SENSOR_CONFIG_ERR:
-		printk("motormove_err_callback motor_phase_accout=%d motor_comp_accout=%d moving_status=%x\n", 
+		printk(KERN_INFO "motormove_err_callback motor_phase_accout=%d motor_comp_accout=%d moving_status=%x\n", 
 			pmotor_data->motor_phase_accout, pmotor_data->motor_comp_accout, pmotor_data->moving_status);
 
 		if (pmotor_data->motor_phase_accout != 0)
@@ -107,9 +107,9 @@ static inline void motormove_err_callback(struct motor_data *pmotor_data, int re
 		pmotor_data->stoping_status = MOTOR_STOP_BY_ABNORMAL;
 		#else
 		pmotor_data->moving_status |= MOTOR_STOP_BY_ABNORMAL;
-		//printk("moving_status=%x\n", pmotor_data->moving_status);
+		//printk(KERN_INFO "moving_status=%x\n", pmotor_data->moving_status);
 		pmotor_data->moving_status &= ~(MOTOR_MOVE_STATUS_RUNNING|MOTOR_MOVE_STATUS_INUSE);
-		//printk("moving_status=%x\n", pmotor_data->moving_status);
+		//printk(KERN_INFO "moving_status=%x\n", pmotor_data->moving_status);
 		#endif
 		return;
 	default:
@@ -139,7 +139,7 @@ static inline  int step_motor_triger_deal(struct motor_data *pmotor_data, char t
 			       motor_trigger_phase->motor_sen_flag);
 		if(ret)
 		{
-			 printk("step_motor_start:sensor_set_trigger_next error!\n");
+			 printk(KERN_ERR "step_motor_start:sensor_set_trigger_next error!\n");
 			 ret = -RESN_MECH_ERR_MOTOR_SENSOR_CONFIG_ERR;
 			 motormove_err_callback(pmotor_data, ret);
 			 return ret;
@@ -149,10 +149,10 @@ static inline  int step_motor_triger_deal(struct motor_data *pmotor_data, char t
 
 			
 			
-	pr_debug("%dto_trigger_steps=%ld \n",triger_index,
+	printk(KERN_DEBUG "%dto_trigger_steps=%ld \n",triger_index,
 		motor_trigger_phase->to_trigger_steps);
 	#if 0
-	pr_debug("%d %d %d %d %d\n",
+	printk(KERN_DEBUG "%d %d %d %d %d\n",
 		motor_trigger_phase->motor_triger_flag.motor_trigger_stop_flag,
 		motor_trigger_phase->motor_triger_flag.motor_trigger_sensor_flag,
 		motor_trigger_phase->motor_triger_flag.motor_sensor_stop_flag,
@@ -164,7 +164,7 @@ static inline  int step_motor_triger_deal(struct motor_data *pmotor_data, char t
 	ret=steppermotor_set_trigger_next(pmotor_data->motor_dev.psteppermotor, &motor_trigger);
 	if(ret)
 	{
-		printk("step_motor_start:steppermotor_set_triggersteps_next error!\n");
+		printk(KERN_ERR "step_motor_start:steppermotor_set_triggersteps_next error!\n");
 		ret = -RESN_MECH_ERR_MOTOR_MOVE_SET_TRIGGER_NEXT;
 		motormove_err_callback(pmotor_data, ret);
 		return ret;
