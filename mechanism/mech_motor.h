@@ -38,7 +38,7 @@ struct motor_data{
     //unsigned char triger_num;
     struct sensor_trigger trigerinfo[STEPSPEED_PHASE_NUM];
     unsigned char phase_current_num;
-    unsigned short last_sen_mask;		//sensors roll in this phase
+    unsigned int last_sen_mask;		//sensors roll in this phase
     //unsigned char  last_motor_sen_flag;  //MOTOR_SEN_ARRIVE / MOTOR_SEN_LEAVE
     //for stepmotor move
     struct steppermotor_config step_config;

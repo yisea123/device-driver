@@ -17,7 +17,7 @@
 // database struct of sensors in a mechanism unit.
 struct sensor_data{
 //defined in code
-    unsigned short sen_mask;
+    unsigned int sen_mask;
     unsigned char sen_name[MECHUINT_NAME_LEN];
 // get from dts(device tree source)
     union{
@@ -32,7 +32,7 @@ struct sensor_data{
 typedef struct {
 	unsigned char  sensor_num;
 	struct sensor_data *sensor;
-	unsigned short sensor_masks;
+	unsigned int sensor_masks;
 }mechanism_uint_sensor_data_t;
 
 #define sensor_get_data(punit_sensor_data, senmask, psen_data, i) \
@@ -46,19 +46,19 @@ typedef struct {
 
 //----------------------------------------------------
 //----------------------sensor init----------------------
-extern int sensor_init(mechanism_uint_sensor_data_t *punit_sensor_data,  unsigned short sen_masks);
+extern int sensor_init(mechanism_uint_sensor_data_t *punit_sensor_data,  unsigned int sen_masks);
 //----------------------sensor enable/disable---------------------- 
-extern int sensor_enable(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_masks, unsigned char enable);
+extern int sensor_enable(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_masks, unsigned char enable);
 //----------------------get the output value of sensor----------------------
-extern int sensor_get_val(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_mask, unsigned long *val);
+extern int sensor_get_val(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_mask, unsigned long *val);
 //----------------------get the status of sensor(detected or undetected)----------------------
-extern int sensor_get_appval(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_mask, unsigned int *appval);
+extern int sensor_get_appval(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_mask, unsigned int *appval);
 //----------------------set sensor trigger----------------------
-extern int sensor_set_trigger(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_masks, unsigned char trigger_type);
+extern int sensor_set_trigger(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_masks, unsigned char trigger_type);
 //----------------------set sensor next trigger----------------------
-extern int sensor_set_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_masks, unsigned char trigger_type);
+extern int sensor_set_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_masks, unsigned char trigger_type);
 //----------------------clear sensor next trigger----------------------
-extern int sensor_clear_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_masks);
+extern int sensor_clear_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_masks);
 //----------------------set sensor config----------------------
 extern int sensor_set_config(mechanism_uint_sensor_data_t *punit_sensor_data, mech_unit_sen_config_t *pmech_unit_sen_config, sen_config_t *p_sen_config );
 //----------------------get sensor feature----------------------

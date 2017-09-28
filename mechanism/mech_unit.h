@@ -26,7 +26,7 @@ struct mechanism_uint_data{
 	char bsensor_filled;
 };
 
-extern int mechunit_get_sensor_status(struct mechanism_uint_data *punit_data,unsigned short sensor_masks, unsigned short *pstatus);
+extern int mechunit_get_sensor_status(struct mechanism_uint_data *punit_data,unsigned int sensor_masks, unsigned int *pstatus);
 extern int mechunit_get_sensors_rawinput(struct mechanism_uint_data *punit_data, mech_unit_sen_raw_input_t * psen_raw_input);
 extern int mechunit_set_sensor_config(struct mechanism_uint_data *punit_data, mech_unit_sen_config_t *pmech_unit_sen_config);
 extern int mechunit_get_sensor_feature(struct mechanism_uint_data *punit_data, mech_unit_sen_feature_t *pmech_unit_sen_feature);

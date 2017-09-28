@@ -22,10 +22,10 @@
 #include "mech_unit.h"
 
 
-int mechunit_get_sensor_status(struct mechanism_uint_data *punit_data,unsigned short sensor_masks, unsigned short *pstatus)
+int mechunit_get_sensor_status(struct mechanism_uint_data *punit_data,unsigned int sensor_masks, unsigned int *pstatus)
 {
 	unsigned char j;
-	unsigned short mask, status=0;
+	unsigned int mask, status=0;
 	unsigned int val;
 	int ret=0;
 	
@@ -699,12 +699,16 @@ static	int	mech_motor_move(struct mechanism_dev_t * mech_dev, class_cmd *cptr)
 	if (motor_mov.speed_phase_num) {
 		pmotor_speed_phase = kzalloc(sizeof(motor_speed_phase_t)*motor_mov.speed_phase_num, GFP_KERNEL);
 		if (!pmotor_speed_phase) {
+			if (pscantriger_source)
+				kfree(pscantriger_source);
 			return (-ENOMEM);
 		}
 		if (copy_from_user((void *)pmotor_speed_phase, (void __user *)motor_mov.motor_speed_phase, sizeof(motor_speed_phase_t)*motor_mov.speed_phase_num)) 
 		{
 			kfree(pmotor_speed_phase);
-			kfree(pscantriger_source);
+			if (pscantriger_source) {
+				kfree(pscantriger_source);
+			}
 			return -EFAULT;
 		}
 		motor_mov.motor_speed_phase = pmotor_speed_phase;  
@@ -1037,6 +1041,7 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 		{
 			mechunit_feature_t mechunit_feature;
 
+			strcpy(mechunit_feature.mech_name, mech_dev->mech_unit_data.mech_unit_name);
 			mechunit_feature.mech_unit_type = mech_dev->mech_unit_data.mech_unit_type; 
 			mechunit_feature.motor_num = mech_dev->mech_unit_control.mech_unit_motor_feature.motor_num;
 			mechunit_feature.sensor_num = mech_dev->mech_unit_control.mech_unit_sen_feature.sen_num;

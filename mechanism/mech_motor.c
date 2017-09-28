@@ -23,7 +23,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 	int ret=0;
 	int timeout_ret;
 	
-	unsigned short sensor_mask;
+	unsigned int sensor_mask;
 
 	motor_trigger_phase_t *motor_trigger_phase;
 
@@ -204,7 +204,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 	int ret=0;
 	int timeout_ret;
 	
-	unsigned short sensor_mask;
+	unsigned int sensor_mask;
 
 	motor_trigger_phase_t *motor_trigger_phase;
 

@@ -8,10 +8,10 @@
 
 
 //----------------------sensor init----------------------
-int sensor_init(mechanism_uint_sensor_data_t *punit_sensor_data,  unsigned short sen_masks)
+int sensor_init(mechanism_uint_sensor_data_t *punit_sensor_data,  unsigned int sen_masks)
 {
 	struct sensor_data *psen_data;
-	unsigned short sen_mask, i,j;
+	unsigned int sen_mask, i,j;
 	int ret=0;
 
 	for_each_mask_of_unit(sen_masks, sen_mask, i) {
@@ -46,10 +46,10 @@ int sensor_init(mechanism_uint_sensor_data_t *punit_sensor_data,  unsigned short
 }
 EXPORT_SYMBOL_GPL(sensor_init);
 //----------------------sensor enable/disable---------------------- 
-int sensor_enable(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_masks, unsigned char enable)
+int sensor_enable(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_masks, unsigned char enable)
 {
 	struct sensor_data *psen_data;
-	unsigned short sen_mask, i, j;
+	unsigned int sen_mask, i, j;
 	int ret=0;
 
 	for_each_mask_of_unit(sen_masks, sen_mask, i) {
@@ -76,10 +76,10 @@ int sensor_enable(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned shor
 }
 EXPORT_SYMBOL_GPL(sensor_enable);
 //----------------------get the output value of sensor----------------------
-int sensor_get_val(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_mask, unsigned long *val)
+int sensor_get_val(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_mask, unsigned long *val)
 {
 	struct sensor_data *psen_data;
-	unsigned short j;
+	unsigned int j;
 
 	sensor_get_data(punit_sensor_data, sen_mask, psen_data, j);
         if (j==punit_sensor_data->sensor_num) {
@@ -90,10 +90,10 @@ int sensor_get_val(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned sho
 }
 EXPORT_SYMBOL_GPL(sensor_get_val);
 //----------------------get the status of sensor(detected or undetected)----------------------
-int sensor_get_appval(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_mask, unsigned int *appval)
+int sensor_get_appval(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_mask, unsigned int *appval)
 {
 	struct sensor_data *psen_data;
-	unsigned short j;
+	unsigned int j;
 	int ret=0;
 
 	sensor_get_data(punit_sensor_data, sen_mask, psen_data, j);
@@ -105,10 +105,10 @@ int sensor_get_appval(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned 
 }
 EXPORT_SYMBOL_GPL(sensor_get_appval);
 //----------------------set sensor trigger----------------------
-int sensor_set_trigger(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_masks, unsigned char trigger_type)
+int sensor_set_trigger(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_masks, unsigned char trigger_type)
 {
 	struct sensor_data *psen_data;
-	unsigned short sen_mask, i, j;
+	unsigned int sen_mask, i, j;
 	int ret=0;
 
 	for_each_mask_of_unit(sen_masks, sen_mask, i) {
@@ -138,10 +138,10 @@ int sensor_set_trigger(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned
 }
 EXPORT_SYMBOL_GPL(sensor_set_trigger);
 //----------------------set sensor next trigger----------------------
-int sensor_set_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_masks, unsigned char trigger_type)
+int sensor_set_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_masks, unsigned char trigger_type)
 {
 	struct sensor_data *psen_data;
-	unsigned short sen_mask, i, j;
+	unsigned int sen_mask, i, j;
 	int ret=0;
 	struct sensor_trigger trigger;
 
@@ -163,10 +163,10 @@ int sensor_set_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, uns
 }
 EXPORT_SYMBOL_GPL(sensor_set_trigger_next);
 
-int sensor_clear_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned short sen_masks)
+int sensor_clear_trigger_next(mechanism_uint_sensor_data_t *punit_sensor_data, unsigned int sen_masks)
 {
 	struct sensor_data *psen_data;
-	unsigned short sen_mask, i, j;
+	unsigned int sen_mask, i, j;
 	int ret=0;
 
 	for_each_mask_of_unit(sen_masks, sen_mask, i) {
@@ -191,7 +191,7 @@ int sensor_set_config(mechanism_uint_sensor_data_t *punit_sensor_data, mech_unit
 {
 	struct sensor_data *psen_data;
 	struct photosensor_config config;
-	unsigned short sen_mask, i, j, k;
+	unsigned int sen_mask, i, j, k;
 	int ret=0;
 
 	for_each_mask_of_unit(p_sen_config->sen_mask, sen_mask, i) {
@@ -238,7 +238,7 @@ int sensor_get_feature(mechanism_uint_sensor_data_t *punit_sensor_data, sen_feat
 	struct sensor_data *psen_data;
 	int ret;
 	struct photosensor_feature feature;
-	unsigned short j;
+	unsigned int j;
 
 	sensor_get_data(punit_sensor_data, p_ppsfeature->sen_mask, psen_data, j);
 	if (j==punit_sensor_data->sensor_num) {
