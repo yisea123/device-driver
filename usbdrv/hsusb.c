@@ -20,7 +20,7 @@
 #include "epautoconf.c"
 
 #define SEND_BUFLEN (128*1024)
-#define RECV_BUFLEN (64)
+#define RECV_BUFLEN (1024)
 
 #define DRIVER_VENDOR_NUM       0x206d          
 #define DRIVER_PRODUCT_NUM      0x0003 
@@ -106,7 +106,7 @@ static struct usb_endpoint_descriptor hs_recv_desc = {
 	.bDescriptorType =   USB_DT_ENDPOINT,
 
 	.bmAttributes =      USB_ENDPOINT_XFER_BULK,
-	.wMaxPacketSize =    cpu_to_le16(64),
+	.wMaxPacketSize =    cpu_to_le16(512),
 };
 
 static struct usb_descriptor_header *hs_send_recv_descs[] = {
@@ -408,6 +408,7 @@ static ssize_t hsusb_read(struct file *filp, char __user * buf, size_t count, lo
 	if(count == 0)
 		return -EINVAL;
 
+	init_completion(&ss->gdt_completion);
 	req = alloc_ep_req(ss->out_ep, RECV_BUFLEN);
 	if (!req){
 		ret = -ENOMEM;
@@ -450,6 +451,7 @@ static ssize_t hsusb_write(struct file *filp, const char __user * buf, size_t co
 	if(count == 0)
 		return -EINVAL;
 
+	init_completion(&ss->gdt_completion);
 	req = alloc_ep_req(ss->in_ep, SEND_BUFLEN);
 
 	if (!req){
