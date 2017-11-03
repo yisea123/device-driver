@@ -98,7 +98,7 @@ static struct usb_endpoint_descriptor hs_send_desc = {
 	.bDescriptorType =   USB_DT_ENDPOINT,
 
 	.bmAttributes =      USB_ENDPOINT_XFER_BULK,
-	.wMaxPacketSize =    cpu_to_le16(1024),
+	.wMaxPacketSize =    cpu_to_le16(512),
 };
 
 static struct usb_endpoint_descriptor hs_recv_desc = {

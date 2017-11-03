@@ -9,7 +9,8 @@ PWD := $(shell pwd)
 
 # define include file directory for all scanner devices drivers
 #subdir-ccflags-y := -I$(src)/include
-INCLUDES := $(obj)/../../../work/mx6ul_document_scanner/include -I $(obj)/../../../work/mx6ul_document_scanner/fw/include
+#INCLUDES := $(obj)/../../../work/*/fw/include
+INCLUDES := $(obj)/../../../../sources/common/include -I $(obj)/../../../../sources/common/fw/include
 #subdir-ccflags-y := -I $(INCLUDES)
 
 
@@ -40,5 +41,3 @@ default:
 	make -C $(KDIR) M=$(PWD) modules
 clean:
 	make -C $(KDIR) M=$(PWD) clean
-
-

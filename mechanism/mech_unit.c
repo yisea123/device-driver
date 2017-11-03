@@ -1133,7 +1133,7 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 		}
 		goto mechunit_ioctl_ret;
 	case GET_MECH_SIGIO:
-		printk("GET_MECH_SIGIO!");
+		pr_debug("GET_MECH_SIGIO!");
 		if (copy_to_user((void __user *)argp, (void *)&mech_dev->sigio_event, sizeof(mech_dev->sigio_event))) 
 		{
 			printk(KERN_INFO "mechunit_ioctl GET_MECH_SIGIO: copy_to_user fail\n");
@@ -1282,14 +1282,15 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 		break;
 	#endif
 	case MECH_CONTROL_CMD:
+		printk("MECH_CONTROL_CMD excute command\n");
 		if (copy_from_user(&mech_ctrl, (void __user *)argp, sizeof(mech_control_t)))
 		{
-			pr_debug("\n\n\n\n\n\n\nmechunit_ioctl: MECH_CONTROL_CMD copy_from_user error\n");
+			printk("mechunit_ioctl: MECH_CONTROL_CMD copy_from_user error\n");
 			ret = -EFAULT;
 			goto mechunit_ioctl_ret;
 		}
 		classcmd.argptr = (address)&mech_ctrl;
-		pr_debug("\n\n\n\n\nmechunit_ioctl: mech_ctrl.cmd=%d \n", mech_ctrl.cmd);
+		pr_debug("mechunit_ioctl: mech_ctrl.cmd=%d \n", mech_ctrl.cmd);
 		if (mech_ctrl.cmd>=MECH_CTRL_FUNCTIONS) {
 			printk("mechunit_ioctl: mech_ctrl.cmd out of range\n");
 			mech_dev->mech_unit_drv_status.mechdev_status = RECOVERABLE; 
@@ -1297,7 +1298,7 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 			goto mechunit_ioctl_ret;
 		}
 		ret = mechunit_library[mech_ctrl.cmd](mech_dev, &classcmd);
-		//pr_debug("mechunit_ioctl: ret=%x \n", ret);
+		pr_debug("mechunit_ioctl: ret=%x \n", ret);
 		if (ret)
 		{
 			printk(KERN_INFO "mechunit_ioctl MECH_CONTROL_CMD: libfun fail\n");

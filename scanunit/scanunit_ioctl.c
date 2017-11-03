@@ -25,12 +25,10 @@ extern struct scanunit_hwinfo scanner_info;
 extern struct imagedigitiser *image_digitisers[];
 extern struct imagesensor *image_sensors[];
 extern int scanmode;
-int start_flag= 0;
 
-//DECLARE_TASKLET(imgcpy_tasklet, imgcpy_do_tasklet, 0);
 static inline long scanunit_io_reset(unsigned long arg)
 {
-	fpga_writel(0x3c, cis_reg_base + FPGA_REG_CIS_CONTROL);
+	fpga_writel(0, cis_reg_base + FPGA_REG_CIS_CONTROL);
 	return 0;
 }
 
@@ -38,33 +36,16 @@ static inline long scanunit_io_reset(unsigned long arg)
 static inline long scanunit_io_set_scanmode(unsigned long arg)
 {
 	void __user *argp = (void __user *)arg;
-	struct scanunit_scanmode mode;
+	struct scanunit_scanmode_config_arg config_arg;
 	int rs;
 
-	if (copy_from_user(&mode, argp, sizeof(struct scanunit_scanmode)))
+	if (copy_from_user(&config_arg, argp, sizeof(struct scanunit_scanmode_config_arg)))
 		return -EFAULT;
-//	printk("scanunit_io_set_scanmode:ledmode=%x, dpimode=%x\n", mode.ledmode, mode.dpimode);
-	rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCANMODE_MASK, (mode.ledmode<<2)); 
-	rs = fpga_writel(mode.dpimode, cis_dpi_reg_base + FPGA_REG_CIS_DPI_CONTROL);
-	if (mode.dpimode==0x1){
-		rs = fpga_writel(0x3, cis_dpi_reg_base + FPGA_REG_DPI_SI_H);
-		if (mode.ledmode==0xf) {
-			rs = fpga_writel(0x4ae, cis_dpi_reg_base + FPGA_REG_DPI_SI_L);
-		}
-		else if (mode.ledmode==0x10){
-			rs = fpga_writel(0x63d , cis_dpi_reg_base + FPGA_REG_DPI_SI_L);
-		}	
-	}
-	else if (mode.dpimode==0x2){
-		
-		rs = fpga_writel(0x5, cis_dpi_reg_base + FPGA_REG_DPI_SI_H);
-		if (mode.ledmode==0xf) {
-			rs = fpga_writel(0x95a, cis_dpi_reg_base + FPGA_REG_DPI_SI_L);
-		}
-		else if (mode.dpimode==0x2 && mode.ledmode==0x10){
-			rs = fpga_writel(0x753, cis_dpi_reg_base + FPGA_REG_DPI_SI_L);
-		}	
-	}
+
+	rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCANMODE_MASK, (config_arg.mode.ledmode<<2)); 
+	rs = fpga_writel(config_arg.mode.dpimode, cis_dpi_reg_base + FPGA_REG_CIS_DPI_CONTROL);
+	rs = fpga_writel(config_arg.fpga_reg_dpi_high, cis_dpi_reg_base + FPGA_REG_DPI_SI_H);
+	rs = fpga_writel(config_arg.fpga_reg_dpi_low, cis_dpi_reg_base + FPGA_REG_DPI_SI_L);
 
 	return rs;
 }
@@ -90,7 +71,12 @@ static inline long scanunit_io_start_scanning(unsigned long arg)
 	udelay(10);
 	rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, 0x200, 0);
 	udelay(10);
-	rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_ENABLE, FPGA_REG_CIS_SCAN_ENABLE);
+	if (arg == 0)
+		rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_ENABLE, FPGA_REG_CIS_SCAN_ENABLE);
+	else if (arg == 1)
+		rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_TRIGGER_ENABLE, FPGA_REG_CIS_SCAN_TRIGGER_ENABLE);
+	else
+		return -EINVAL;
 	scandrv_ctrl.start_flag = 1;
 	return rs;
 }
@@ -99,9 +85,8 @@ static inline long scanunit_io_start_scanning(unsigned long arg)
 static inline long scanunit_io_stop_scanning(unsigned long arg)
 {
 	int rs;
-	rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_ENABLE, 0);
+	rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_ENABLE|FPGA_REG_CIS_SCAN_TRIGGER_ENABLE, 0);
 	scandrv_ctrl.start_flag = 0; 
-//	printk("cnt = %d\n", scandrv_ctrl.cnt);
 	complete(&scandrv_ctrl.scan_completion);
 	return rs;
 }
@@ -144,7 +129,6 @@ static long scanunit_io_get_digitiser_config(unsigned long arg)
 	struct scanunit_config tmpconfig;
 	int datasize;
 	int rs;
-//	printk("KERNEL:scanunit_io_get_digitiser_config!\n");
 
 	if (copy_from_user(&config_arg, argp, sizeof(config_arg)))
 		return -EFAULT;
@@ -183,8 +167,6 @@ static long scanunit_io_set_digitiser_config(unsigned long arg)
 	int datasize;
 	int rs;
 
-//	printk("scanunit_io_set_digitiser_config!\n");
-
 	if (copy_from_user(&config_arg, argp, sizeof(config_arg)))
 		return -EFAULT;
 	if (config_arg.device < -1 || config_arg.device >= scanner_info.digitisers) 
@@ -222,7 +204,6 @@ static long scanunit_io_set_digitiser_config(unsigned long arg)
 		rs = imagedigitiser_set_config(digitiser, &tmpconfig);
 		if (IS_ERR_VALUE(rs))
 			goto free_n_return;
-
 		imagedigitiser_disable(digitiser);
 		imagedigitiser_enable(digitiser);	// enable digitiser to update its configuration data by FPGA
 	}

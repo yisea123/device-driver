@@ -16,14 +16,13 @@
 #include <linux/device.h>
 #include <linux/list.h>
 #include <linux/mm.h>
-#include <linux/dma-mapping.h>
 #include <linux/slab.h>
 #include <asm/pgtable.h>
 #include <asm/io.h>
 #include <linux/completion.h>
 #include <asm/uaccess.h>
 #include <linux/gpio.h>
-
+#include <linux/dma-mapping.h>
 
 #include "../fpga_io.h"
 #include "../fpga.h"
@@ -60,8 +59,7 @@ u32 imgdata_status, imgcolor_status;
 //extern char *reserve_memory;
 char *linux_kernel_memory;
 dma_addr_t dma_handle;
-#define RESERVE_MEMORY_SIZE     0x8000000
-#define HALF_RESERV_MEM_SIZE    (RESERVE_MEMORY_SIZE>>1)
+#define HALF_RESERV_MEM_SIZE	(RESERVE_SCANBUF_SIZE>>1)
 
 struct scanunit_hwinfo scanner_info;
 struct imagedigitiser *image_digitisers[MAX_IMAGE_DIGITISERS];
@@ -81,26 +79,24 @@ static int scanunit_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-
 static int scanunit_close(struct inode *inode, struct file *file)
 {
 	return 0;
 }
 
-
 static int scanunit_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	//unsigned long page;
 
-        //page = virt_to_phys(reserve_memory);
+	//page = virt_to_phys(reserve_memory);
 
-        //printk("page virt_to_phys = %lx\n", page);
-         printk(" linux_kernel_memory = %lx\n", linux_kernel_memory);
+	//printk("page virt_to_phys = %lx\n", page);
+	printk(" linux_kernel_memory = %lx\n", linux_kernel_memory);
 
         if (remap_pfn_range(vma, vma->vm_start, dma_handle>>PAGE_SHIFT,//pagesize is 4096
-	                    vma->vm_end - vma->vm_start, PAGE_SHARED)) {
-                return -EAGAIN;
-	}	
+			vma->vm_end - vma->vm_start, PAGE_SHARED)) {
+		return -EAGAIN;
+	}
 
 	return 0;
 }
@@ -315,13 +311,13 @@ static int scanunit_parse_hwinfo(struct device *dev)
 	sect = scanner_info.sectinfo_a;
 	for (i = 0; i < scanner_info.sections_a; i++) {
 		printk(KERN_INFO " A-%d\t%6d%10d%10d%10d%8d%10d\n", i+1, sect[i].pstart, sect[i].pend, 
-			    sect[i].lstart, sect[i].lend, sect[i].digitiser_id, sect[i].channel); 
+				sect[i].lstart, sect[i].lend, sect[i].digitiser_id, sect[i].channel); 
 	}
 	if (scanner_info.sections_b) {
 		sect = scanner_info.sectinfo_b;
 		for (i = 0; i < scanner_info.sections_b; i++) {
 			printk(KERN_INFO " B-%d\t%6d%10d%10d%10d%8d%10d\n", i+1, sect[i].pstart, sect[i].pend,
-				     sect[i].lstart, sect[i].lend, sect[i].digitiser_id, sect[i].channel); 
+				sect[i].lstart, sect[i].lend, sect[i].digitiser_id, sect[i].channel); 
 		}
 	}
 #endif
@@ -333,7 +329,6 @@ static irqreturn_t scanunit_isr(int irq, void *dev_id)
 	void __iomem *imgdata_int_status= NULL;
 	void __iomem *imgdata_int_clear = NULL;
 
-	
 	imgdata_int_clear = ints_reg_base + FPGA_REG_IMG_ADDR_INT_CLEAR;
 	imgdata_int_status = ints_reg_base + FPGA_REG_IMG_ADDR_INT_STATUS;
 
@@ -345,87 +340,86 @@ static irqreturn_t scanunit_isr(int irq, void *dev_id)
 
 	fpga_readl(&imgcolor_status, imgdata_int_status);
 	fpga_writel(imgcolor_status, imgdata_int_clear); //clear color int status bits
+
 	if(scandrv_ctrl.start_flag == 1)
 	{
 		scandrv_ctrl.start_flag = 0;
 		return IRQ_HANDLED;
 	}
-	else
+
+	if (scandrv_ctrl.start_flag == 0) 
 	{
 		//tasklet_schedule(&imgcpy_tasklet);
                 {
-                	int len;
-                	void __iomem *src;
+			int len;
+			void __iomem *src;
 
-                	len = SCANLINE_SIZE;
+			len = SCANLINE_SIZE;
 
-                	//ptr = scandrv_ctrl.buffer + scandrv_ctrl.scanlines*len;
-                        ptr = linux_kernel_memory + scandrv_ctrl.scanlines*len;
+			//ptr = scandrv_ctrl.buffer + scandrv_ctrl.scanlines*len;
+			ptr = linux_kernel_memory + scandrv_ctrl.scanlines*len;
+			if (ptr >= (linux_kernel_memory + RESERVE_SCANBUF_SIZE)) {
+				pr_err("memcpy ptr bigger than RESERVE_SCANBUF_SIZE!\n");
+				return IRQ_HANDLED;
+			}
 
-                	imgdata_status &= 0x7;
+			imgdata_status &= 0x7;
 
-                	if ((scandrv_ctrl.scanlines == 0) && (imgcolor_status & DATA_RED_MASK)) { //make sure the first int data is red
-                		if(imgdata_status & DATA_READY_1){
-                			src = imgram_base + img_offsets[0];
-                			memcpy(ptr, src, len);
-                			ptr += len;
-                		}else if(imgdata_status & DATA_READY_2){
-                			src = imgram_base + img_offsets[1];
-                			memcpy(ptr, src, len/2);
-                			ptr += len/2;
-                			src = imgram_base + img_offsets[0];
-                			memcpy(ptr, src, len/2);
-                			ptr += len/2;
-                		}else if(imgdata_status & DATA_READY_3){
-                			src = imgram_base + img_offsets[2];
-                			memcpy(ptr, src, len);
-                			ptr += len;
-                		}
-                		scandrv_ctrl.scanlines++;
-                		scandrv_ctrl.linecount++;
-                	}
-                	else if ((scandrv_ctrl.scanlines > 0)||(scandrv_ctrl.scanlines == 0 && imgcolor_status & DATA_GREY_MASK))
-                	{
-                		if ((imgdata_status & DATA_READY_1) && (scandrv_ctrl.linecount * len < SCANBUF_SIZE)) {
-                			src = imgram_base + img_offsets[0];
-                			memcpy(ptr, src, len);
-                			ptr += len;
-                			scandrv_ctrl.scanlines++;
-                			scandrv_ctrl.linecount++;
-                		}
-                		
-                		if ((imgdata_status & DATA_READY_2) && (scandrv_ctrl.linecount*len < SCANBUF_SIZE)) {
-                			src = imgram_base + img_offsets[1];
-                			memcpy(ptr, src, len/2);
-                			ptr += len/2;
-                			src = imgram_base + img_offsets[0];
-                			memcpy(ptr, src, len/2);
-                			ptr += len/2;
-                			scandrv_ctrl.scanlines++;
-                			scandrv_ctrl.linecount++;
-                		}
+			if ((scandrv_ctrl.scanlines == 0) && (imgcolor_status & DATA_RED_MASK)) { //make sure the first int data is red
+				if(imgdata_status & DATA_READY_1){
+					src = imgram_base + img_offsets[0];
+					memcpy(ptr, src, len);
+					ptr += len;
+				}else if(imgdata_status & DATA_READY_2){
+					src = imgram_base + img_offsets[1];
+					memcpy(ptr, src, len/2);
+					ptr += len/2;
+					src = imgram_base + img_offsets[0];
+					memcpy(ptr, src, len/2);
+					ptr += len/2;
+				}else if(imgdata_status & DATA_READY_3){
+					src = imgram_base + img_offsets[2];
+					memcpy(ptr, src, len);
+					ptr += len;
+				}
+				scandrv_ctrl.scanlines++;
+				scandrv_ctrl.linecount++;
+			}
+			else if ((scandrv_ctrl.scanlines > 0)||(scandrv_ctrl.scanlines == 0 && imgcolor_status & DATA_GREY_MASK))
+			{
+				if ((imgdata_status & DATA_READY_1) && (scandrv_ctrl.linecount * len < SCANBUF_SIZE)) {
+					src = imgram_base + img_offsets[0];
+					memcpy(ptr, src, len);
+					ptr += len;
+					scandrv_ctrl.scanlines++;
+					scandrv_ctrl.linecount++;
+				}
+				
+				if ((imgdata_status & DATA_READY_2) && (scandrv_ctrl.linecount*len < SCANBUF_SIZE)) {
+					src = imgram_base + img_offsets[1];
+					memcpy(ptr, src, len/2);
+					ptr += len/2;
+					src = imgram_base + img_offsets[0];
+					memcpy(ptr, src, len/2);
+					ptr += len/2;
+					scandrv_ctrl.scanlines++;
+					scandrv_ctrl.linecount++;
+				}
 
-                		if ((imgdata_status & DATA_READY_3) && (scandrv_ctrl.linecount*len < SCANBUF_SIZE)) {
-                			src = imgram_base + img_offsets[2];
-                			memcpy(ptr, src, len);
-                			ptr += len;
-                			scandrv_ctrl.scanlines++;
-                			scandrv_ctrl.linecount++;
-                		}
-                	}
+				if ((imgdata_status & DATA_READY_3) && (scandrv_ctrl.linecount*len < SCANBUF_SIZE)) {
+					src = imgram_base + img_offsets[2];
+					memcpy(ptr, src, len);
+					ptr += len;
+					scandrv_ctrl.scanlines++;
+					scandrv_ctrl.linecount++;
+				}
+			}
 
-                	if (scandrv_ctrl.linecount == SCANLINE_MAX_CNT) {
-                		complete(&scandrv_ctrl.scan_completion);
-                //			if (scandrv_ctrl.scanlines == SCANLINE_MAX_CNT) 
-                //				memset(scandrv_ctrl.buffer + SCANLINE_MAX_CNT * len, 0, SCANBUF_SIZE / 2);
-                		scandrv_ctrl.linecount = 0;
-                	}
-                        /*
-                	if (scandrv_ctrl.scanlines == 200) {
-                		scandrv_ctrl.scanlines = 0;
-                //			memset(scandrv_ctrl.buffer, 0, SCANBUF_SIZE / 2);
-                	}*/
-                }
+			if (scandrv_ctrl.linecount == SCANLINE_MAX_CNT) {
+				complete(&scandrv_ctrl.scan_completion);
+				scandrv_ctrl.linecount = 0;
+			}
+		}
 		return IRQ_HANDLED;
 	}
 }
@@ -434,22 +428,23 @@ static int scanunit_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
 	struct device *temp_dev;
-	u32 fpga_cs, reg[3];
+	u32 fpga_cs;
+	u32 reg[3];
 	int ret;
 
 	memset((void *)&scanner_info, 0, sizeof(scanner_info));
 	memset((void *)&image_digitisers, 0, sizeof(image_digitisers));
 	memset((void *)&image_sensors, 0, sizeof(image_sensors));
 
-	ret = of_property_read_u32_array(np, "reg-cis", reg, 3);
+	ret = of_property_read_u32_array(np, "reg-ctrl", reg, 3);
 	if (IS_ERR_VALUE(ret)) {
-		 dev_err(&pdev->dev, "Failed to remap scanunit registers, err = %d\n", ret);
-		 return ret;
+		dev_err(&pdev->dev, "invalid SCANUNIT registers  definition\n");
+		return ret;
 	}
-	fpga_cs = reg[0];	
+	fpga_cs = reg[0];
 	cis_reg_base = fpga_io_get(fpga_cs);
 	if (IS_ERR(cis_reg_base))
-		 return PTR_ERR(cis_reg_base);
+		return PTR_ERR(cis_reg_base);
 	cis_reg_base += reg[1];
 
 	ret = of_property_read_u32_array(np, "reg-dpi", reg, 3);
@@ -465,7 +460,7 @@ static int scanunit_probe(struct platform_device *pdev)
 
 	ret = of_property_read_u32_array(np, "reg-ints", reg, 3);
 	if (IS_ERR_VALUE(ret)) {
-		dev_err(&pdev->dev, "Failed to remap scanuint int registers, err = %d\n", ret);
+		dev_err(&pdev->dev, "invalid SCANUNIT INT registers  definition\n");
 		return ret;
 	}
 	fpga_cs = reg[0];
@@ -513,7 +508,7 @@ static int scanunit_probe(struct platform_device *pdev)
 	
 	printk( KERN_INFO ": scanunit_major= %x, scanunit_dev_no=%x ret=%d\n", scanunit_major, scanunit_dev_no, ret);
 
-    	if (ret < 0)
+	if (ret < 0)
 		goto error_return1;
 
 	cdev_init(&scanunit_cdev, &scanunit_fops);
@@ -540,11 +535,12 @@ static int scanunit_probe(struct platform_device *pdev)
 		goto error_return3;
 	}
 
-        linux_kernel_memory = dma_alloc_coherent( NULL, RESERVE_MEMORY_SIZE, &dma_handle, GFP_KERNEL );
-        if (!linux_kernel_memory) {
-            printk("dma_alloc_coherent fail\n");
-            return -EAGAIN;
-        }
+	linux_kernel_memory = dma_alloc_coherent( NULL, RESERVE_SCANBUF_SIZE, &dma_handle, GFP_KERNEL );
+	if (!linux_kernel_memory) {
+		printk("dma_alloc_coherent fail\n");
+		return -EAGAIN;
+	}
+	printk(" \n\nlinux_kernel_memory=0x%x\n\n", linux_kernel_memory);
 /*	scandrv_ctrl.buffer = devm_kzalloc(&pdev->dev, SCANBUF_SIZE, GFP_KERNEL);
 	if (scandrv_ctrl.buffer == NULL)
 		return -ENOMEM;
@@ -562,7 +558,7 @@ static int scanunit_probe(struct platform_device *pdev)
 	}
 	scandrv_ctrl.linecount = 0;
 	scandrv_ctrl.scanlines = 0;
-	scandrv_ctrl.start_flag = 0;
+	scandrv_ctrl.start_flag = -1;
 	init_completion(&scandrv_ctrl.scan_completion);
 
 	return 0;
@@ -579,8 +575,7 @@ error_return1:
 
 static int scanunit_remove(struct platform_device *pdev)
 {
-	//ClearPageReserved(virt_to_page(scandrv_ctrl.buffer)); 
-        dma_free_coherent(NULL, RESERVE_MEMORY_SIZE, linux_kernel_memory, dma_handle );
+	dma_free_coherent(NULL, RESERVE_SCANBUF_SIZE, linux_kernel_memory, dma_handle);
 	device_destroy(scanunit_class, MKDEV(scanunit_major, 0));
 	class_destroy(scanunit_class);
 	cdev_del(&scanunit_cdev);

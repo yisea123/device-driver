@@ -1,10 +1,10 @@
-INCLUDES := $(obj)/../../../work/mx6ul_document_scanner/fw/include
+INCLUDES := $(obj)/../../../work/$(machine)/fw/include
 KDIR := ../../kernel_root
 PWD := $(shell pwd)
 # kernel modules
+
+
 obj-m := dcmotor.o steppermotor.o fpga_motor.o fpga_dcmotor.o fpga_stepmotor.o sysfs_motor.o
-#dcmotor-objs := dcmotor.o
-#steppermotor-objs := steppermotor.o
 
 #specify flags for the module compilation
 EXTRA_CFLAGS=-g -O0 -D CONFIG_FPGA_EIM -I $(INCLUDES) -D DEBUG

@@ -10,6 +10,7 @@
 #include <linux/ioctl.h>
 #include <linux/types.h>
 
+#ifdef CONFIG_MICROSEMI_010T
 #define SCANUNIT_NAME		"imagescan"
 #define SCAN_RAM_SIZE		31104
 #define LIGHT_SOURCE_NUM	8
@@ -20,8 +21,8 @@
 #define SCANLINE_SIZE		LIGHT_SOURCE_NUM*SCANLINE_DATA_CNT
 #define SCANLINE_MAX_CNT	100
 #define SCANBUF_SIZE		SCANLINE_SIZE*SCANLINE_MAX_CNT*2
-#define RESERVE_SCANBUF_SIZE	0x8000000
-
+#define RESERVE_SCANBUF_SIZE	0x16800000
+#endif
 
 #define MAX_IMAGE_SENSORS	2
 #define MAX_IMAGE_DIGITISERS	8
@@ -31,15 +32,21 @@
 #define SCANUNIT_IOC_MAGIC		'S'
 
 #define SCANUNIT_RESET			_IO(SCANUNIT_IOC_MAGIC, 0)
-//#define SCANUNIT_SET_SCANMODE		_IO(SCANUNIT_IOC_MAGIC, 1)
+#ifdef CONFIG_MICROSEMI_010T
+#define SCANUNIT_SET_SCANMODE		_IOW(SCANUNIT_IOC_MAGIC, 17, struct scanunit_scanmode_config_arg)
+#else
+#define SCANUNIT_SET_SCANMODE		_IO(SCANUNIT_IOC_MAGIC, 1)
+#endif
+
 #define SCANUNIT_START_SCANNING		_IO(SCANUNIT_IOC_MAGIC, 2)
 #define SCANUNIT_STOP_SCANNING		_IO(SCANUNIT_IOC_MAGIC, 3)
 #define SCANUNIT_TURNON_LIGHTS		_IO(SCANUNIT_IOC_MAGIC, 4)
 #define SCANUNIT_TURNOFF_LIGHTS		_IO(SCANUNIT_IOC_MAGIC, 5)
+#ifdef CONFIG_MICROSEMI_010T
 #define SCANUNIT_SET_SCANLINES		_IO(SCANUNIT_IOC_MAGIC, 6)
 #define SCANUNIT_GET_SCANLINES		_IO(SCANUNIT_IOC_MAGIC, 7)
 #define SCANUNIT_WAIT_SCAN_END		_IO(SCANUNIT_IOC_MAGIC, 8)
-
+#endif
 
 #define SCANUNIT_GET_HWINFO		_IOR(SCANUNIT_IOC_MAGIC, 10, struct scanunit_hwinfo)
 
@@ -49,7 +56,7 @@
 #define SCANUNIT_SET_SENSOR_CONFIG	_IOW(SCANUNIT_IOC_MAGIC, 14, struct scanunit_config_arg)
 #define SCANUNIT_GET_SENSOR_COM_CONFIG	_IOR(SCANUNIT_IOC_MAGIC, 15, struct scan_reg_config)
 #define SCANUNIT_SET_SENSOR_COM_CONFIG	_IOW(SCANUNIT_IOC_MAGIC, 16, struct scan_reg_config)
-#define SCANUNIT_SET_SCANMODE		_IOW(SCANUNIT_IOC_MAGIC, 17, struct scanunit_scanmode)
+
 /* scanning mode definition */
 #define SCANNING_SIX_LIGHTSOURCE_MODE	0
 #define SCANNING_TEN_LIGHTSOURCE_MODE	1
@@ -78,7 +85,9 @@ struct scanunit_hwinfo {
 	int sensor_b;				// image sensor ID of side B
 	int sections_b;				// number of scanning sections of side B
 	struct scan_section sectinfo_b[10];	// scanning section information block of side B
+#ifdef CONFIG_MICROSEMI_010T
 	int dpi_pixels[10];
+#endif
 };
 
 #define MAX_SCANNING_SECTIONS	(sizeof(((struct scanunit_hwinfo *)0)->sectinfo_a)/sizeof(struct scan_section))
@@ -104,8 +113,17 @@ struct scanunit_config_arg {
 	struct scanunit_config config;		// hardware configuration data of the device/chip
 };
 
+#ifdef CONFIG_MICROSEMI_010T
 struct scanunit_scanmode {
 	unsigned char dpimode;			
 	unsigned char ledmode;
 };
+
+struct scanunit_scanmode_config_arg {
+	unsigned int fpga_reg_dpi_high;	// fpga_reg_dpi_si_high config value
+	unsigned int fpga_reg_dpi_low;		// fpga_reg_dpi_si_low config value
+	struct scanunit_scanmode mode;		// hardware scanmode configuration
+};
+#endif
+
 #endif /* __SCANUNIT_H__ */

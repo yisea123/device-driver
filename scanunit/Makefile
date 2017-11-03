@@ -5,9 +5,8 @@ obj-m := imagedigitiser.o imagesensor.o fpga_cis.o fpga_afe.o spi_wm8215.o scanu
 
 scanunitdrv-objs := scanunit.o scanunit_ioctl.o
 
-
 #specify flags for the module compilation
-EXTRA_CFLAGS=-g -O0 -D DEBUG -D CONFIG_FPGA_EIM
+EXTRA_CFLAGS=-g -O0 -D DEBUG -D CONFIG_FPGA_EIM -D CONFIG_MICROSEMI_010T
 
 #build: kernel_modules
 

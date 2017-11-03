@@ -218,7 +218,7 @@ int photosensor_get_feature(struct photosensor *sensor, struct photosensor_featu
 {
 	struct sensor_dev *sensordev = to_sensor_dev(sensor);
 
-        //printk("photosensor_get_feature start\n");
+        printk("photosensor_get_feature start\n");
 	if (!sensor || !feature)
 	{
 		pr_debug("photosensor_get_feature err=EINVAL\n");
@@ -598,7 +598,7 @@ static int photosensor_probe(struct platform_device *pdev)
                     printk("5-error = of_property_match_string------ led-contrl\n");
                     return -EINVAL;
                 }
-              
+                
         }
 #endif
         //printk("6-sensordev->sensor.led_contrl switch\n");

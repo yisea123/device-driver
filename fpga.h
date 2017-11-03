@@ -261,14 +261,10 @@
 #define FPGA_REG_CIS_SCANMODE_TEN_LIGHTS	(0x1 << 2)
 #define FPGA_REG_CIS_SCANMODE_MASK		(0x3f << 2)
 
-/* Section 7: CIS DPI CONTROL & information registers */
-#define FPGA_REG_CIS_DPI_CONTROL	0x0000
-#define FPGA_REG_DPI_SI_H		0x0004
-#define FPGA_REG_DPI_SI_L		0x0008
 
-/* Section 8: Image ADC control & information registers */
+/* Section 7: Image ADC control & information registers */
 /* memory map (offset): */
-#define FPGA_REG_IMGADC_CONTROL		0x0000
+#define FPGA_REG_IMGADC_CONTROL			0x0000
 
 /* bits definition of FPGA_REG_IMGADC_CONTROL */
 #define FPGA_REG_IMGADC1_ENABLE			BIT(0)
@@ -282,5 +278,8 @@
 #define FPGA_REG_IMGADC4_CONFIG_ENABLE		BIT(5)
 #define FPGA_REG_IMGADC5_CONFIG_ENABLE		BIT(5)
 
-
+/* Section 7: CIS DPI CONTROL & information registers */
+#define FPGA_REG_CIS_DPI_CONTROL	0x0000
+#define FPGA_REG_DPI_SI_H		0x0004
+#define FPGA_REG_DPI_SI_L		0x0008
 #endif /* __FPGA_H__ */
