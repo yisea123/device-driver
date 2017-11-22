@@ -1282,7 +1282,6 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 		break;
 	#endif
 	case MECH_CONTROL_CMD:
-		printk("MECH_CONTROL_CMD excute command\n");
 		if (copy_from_user(&mech_ctrl, (void __user *)argp, sizeof(mech_control_t)))
 		{
 			printk("mechunit_ioctl: MECH_CONTROL_CMD copy_from_user error\n");

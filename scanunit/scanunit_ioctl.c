@@ -77,7 +77,7 @@ static inline long scanunit_io_start_scanning(unsigned long arg)
 		rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_TRIGGER_ENABLE, FPGA_REG_CIS_SCAN_TRIGGER_ENABLE);
 	else
 		return -EINVAL;
-	scandrv_ctrl.start_flag = 1;
+
 	return rs;
 }
 
@@ -86,7 +86,6 @@ static inline long scanunit_io_stop_scanning(unsigned long arg)
 {
 	int rs;
 	rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_ENABLE|FPGA_REG_CIS_SCAN_TRIGGER_ENABLE, 0);
-	scandrv_ctrl.start_flag = 0; 
 	complete(&scandrv_ctrl.scan_completion);
 	return rs;
 }
