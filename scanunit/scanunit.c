@@ -19,6 +19,7 @@
 #include <linux/slab.h>
 #include <asm/pgtable.h>
 #include <asm/io.h>
+#include <linux/atomic.h>
 #include <linux/completion.h>
 #include <asm/uaccess.h>
 
@@ -32,8 +33,14 @@
 #define SCANUNIT_NAME	"imagescan"
 #define MAX_PIXEL_NUM 1008
 #define SCANLINE_DATA_CNT (MAX_PIXEL_NUM*4)
+#define MAX_BUFFER_NUM	128
 
-u32 imagebuf[MAX_PIXEL_NUM*10];
+atomic_t scanline_count = ATOMIC_INIT(0);
+u32 light_flag = 0;
+int read_buffer_index = 0;
+int write_buffer_index = 0;
+u32 imagebuf[MAX_BUFFER_NUM][MAX_PIXEL_NUM*10];
+
 
 static int scanunit_major = 0;
 static struct class *scanunit_class;
@@ -45,6 +52,8 @@ static DEFINE_MUTEX(scanunit_mutex);
 
 int irq;
 
+void *scan_buffer;
+dma_addr_t dma_handle;
 void __iomem *ints_reg_base, *imgram_base;
 void __iomem *cis_reg_base;
 struct scanunit_hwinfo scanner_info;
@@ -53,7 +62,6 @@ struct imagesensor *image_sensors[MAX_IMAGE_SENSORS];
 phandle digitiser_list[MAX_IMAGE_DIGITISERS]; 
 phandle sensor_list[MAX_IMAGE_SENSORS];
 
-u32 imagebuf[MAX_PIXEL_NUM*10];
 unsigned int scanmode = 0;
 unsigned int irq_timeout_value = 1000;
 
@@ -131,6 +139,15 @@ const char *lights_strs[] = {
 	"VI_A", "IR_A", "IRT_A", "UV_A", "UVT_A", "VI_B", "IR_B", "IRT_B", "UV_B", "UVT_B"
 };
 
+
+void scanunit_reset_scanline(void)
+{
+	atomic_set(&scanline_count, 0);
+	read_buffer_index = write_buffer_index = 0;
+	light_flag = 0;
+}
+
+
 static int scanunit_open(struct inode *inode, struct file *file)
 {
 	return 0;
@@ -155,93 +172,43 @@ static int scanunit_mmap(struct file *file, struct vm_area_struct * vma)
 
 static ssize_t scanunit_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
-	int ret = -EINVAL;
 	int rs;
-	int i, lights = 6, len, lightcnt = 0;
-	u32 mask, imgdata_status, fetch_mask;
+	int len;
 	u32 timeout = 0;
-	const u32 *light_sel;
-	const u32 *light_index;
-	void __iomem *imgdata_int_status;
-	void __iomem *imgdata;
-	void __iomem *imgdata_int_clear = NULL;
-
-	len = SCANLINE_DATA_CNT*10;
+	u32 *imagebuffer;
 
 	if (count <= 0)
 	{
 		printk("scanunit_read: read error, data is NULL\n");
-		return ret;
+		return -EINVAL;
 	}
 
+	len = ((scanmode == 0) ? 6 : 10) * SCANLINE_DATA_CNT;
 	if (count > len) {
 		count = len;
 	}
-
-	memset(imagebuf, 0, len);
-
-	imgdata_int_clear = ints_reg_base + FPGA_REG_IMG_DATA_INT_CLEAR;
-	imgdata = imgram_base;
-	imgdata_int_status = ints_reg_base + FPGA_REG_IMG_DATA_INT_STATUS;
-
-	if (scanmode == 0) {	// six-lights mode
-		lights = 6;  
-		light_sel = six_lights_masks;
-		light_index = six_lights_sequence;
-		fetch_mask = 0x3f;
-	}
-	else {			// ten-lights mode
-		lights = 10;  
-		light_sel = ten_lights_masks;
-		light_index = ten_lights_sequence;
-		fetch_mask = 0x3ff;
-	}
-
-	lightcnt = 0;
-	imgdata_status = 0;
-	timeout = msecs_to_jiffies(irq_timeout_value);
-
-	while (fetch_mask != 0) 
-	{
-		register void __iomem *src;
-		register void *dst;
-
-		for(;;)
-		{
-			fpga_readl(&imgdata_status, imgdata_int_status);
-			if (imgdata_status != 0)
-				break;
-			rs = wait_for_completion_timeout(&img_completion, timeout);
-			if (rs == 0) {
-				printk(KERN_ERR "scanunit_read:timeout err!!!\r\n");
-				return -EAGAIN;
-			}
-		}
-		fpga_writel(imgdata_status, imgdata_int_clear); //clear int status bits
-		fetch_mask &= ~imgdata_status; //clear geted mask status
-
-		for (i = 0; i < lights; i++) {
-			
-			src = imgdata + img_offsets[light_index[i]];
-			dst = imagebuf + i*MAX_PIXEL_NUM;
-			mask = light_sel[i];
-			if (imgdata_status & mask) {
-				memcpy(dst, src, SCANLINE_DATA_CNT);
-				lightcnt++;
-			}
+	while (atomic_read(&scanline_count) <= 0) {
+		timeout = msecs_to_jiffies(irq_timeout_value);
+		rs = wait_for_completion_timeout(&img_completion, timeout);
+		if (rs == 0) {
+			printk(KERN_ERR "scanunit_read:timeout err!!!\r\n");
+			return -EAGAIN;
 		}
 	}
+	atomic_dec(&scanline_count);
 
-	if (copy_to_user (buf, (const void *)imagebuf, count))
+	imagebuffer = imagebuf[read_buffer_index];
+	++read_buffer_index;
+	if (read_buffer_index >= MAX_BUFFER_NUM)
+		read_buffer_index = 0;
+
+	if (copy_to_user (buf, (const void *)imagebuffer, count))
 	{
-		ret = -EFAULT;
 		printk(KERN_ERR "scanunit_read:copy_to_user fail\n");
-		goto fail;
+		return -EFAULT;
 	}
 	
-	return len;
-fail:
-	return ret;
+	return count;
 }
 
 
@@ -470,7 +437,58 @@ static int scanunit_parse_hwinfo(struct device *dev)
 
 static irqreturn_t scanunit_isr(int irq, void *dev_id)
 {
-	complete(&img_completion);
+	int i, lights = 6;
+	u32 mask, imgdata_status, fetch_mask;
+	const u32 *light_sel;
+	const u32 *light_index;
+	u32 *imagebuffer;
+
+	imgdata_status = 0;
+	fpga_readl(&imgdata_status, ints_reg_base + FPGA_REG_IMG_DATA_INT_STATUS);
+	if (imgdata_status == 0)
+		return IRQ_HANDLED;
+
+	fpga_writel(imgdata_status, ints_reg_base + FPGA_REG_IMG_DATA_INT_CLEAR); //clear int status bits
+
+	if (scanmode == 0) {	// six-lights mode
+		lights = 6;  
+		light_sel = six_lights_masks;
+		light_index = six_lights_sequence;
+		fetch_mask = 0x3f;
+	}
+	else {			// ten-lights mode
+		lights = 10;  
+		light_sel = ten_lights_masks;
+		light_index = ten_lights_sequence;
+		fetch_mask = 0x3ff;
+	}
+
+	imagebuffer = imagebuf[write_buffer_index];
+
+	for (i = 0; i < lights; i++) {
+		register void __iomem *src;
+		register void *dst;
+
+		src = imgram_base + img_offsets[light_index[i]];
+		dst = imagebuffer + i*MAX_PIXEL_NUM;
+		mask = light_sel[i];
+		if (imgdata_status & mask) {
+			memcpy(dst, src, SCANLINE_DATA_CNT);
+		}
+	}
+
+	light_flag |= (imgdata_status & fetch_mask);
+	if (light_flag == fetch_mask) {
+		int count;
+		++write_buffer_index;
+		if (write_buffer_index >= MAX_BUFFER_NUM)
+			write_buffer_index = 0;
+		light_flag = 0;
+		count = atomic_inc_return(&scanline_count);
+		complete(&img_completion);
+		if (count > MAX_BUFFER_NUM)
+			printk(KERN_ERR "scanunit_isr: image buffer overflowed !\n");
+	}
 	return IRQ_HANDLED;
 }
 
@@ -485,6 +503,7 @@ static int scanunit_probe(struct platform_device *pdev)
 	memset((void *)&scanner_info, 0, sizeof(scanner_info));
 	memset((void *)&image_digitisers, 0, sizeof(image_digitisers));
 	memset((void *)&image_sensors, 0, sizeof(image_sensors));
+	memset((void *)imagebuf, 0, sizeof(imagebuf));
 
 	ret = of_property_read_u32_array(np, "reg-ctrl", reg, 3);
 	if (IS_ERR_VALUE(ret)) {
@@ -539,7 +558,6 @@ static int scanunit_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Failed to parse hardware information of scanunit\n");
 		return ret;
 	}
-
 	scanunit_dev_no = MKDEV(scanunit_major, 0);
 	printk( KERN_INFO "scanunit_major= %x\n", scanunit_major);
 

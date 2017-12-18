@@ -24,6 +24,8 @@ extern struct imagedigitiser *image_digitisers[];
 extern struct imagesensor *image_sensors[];
 extern int scanmode;
 
+extern void scanunit_reset_scanline(void);
+
 static inline long scanunit_io_reset(unsigned long arg)
 {
 	fpga_writel(0, cis_reg_base + FPGA_REG_CIS_CONTROL);
@@ -66,6 +68,9 @@ static inline long scanunit_io_start_scanning(unsigned long arg)
 
 	fpga_readl(&imgdata_status, imgdata_int_status);
 	fpga_writel(imgdata_status, imgdata_int_clear); //clear int status bits
+
+	scanunit_reset_scanline();
+
 	if (arg == 0)
 		rs = fpga_update_lbits(cis_reg_base + FPGA_REG_CIS_CONTROL, FPGA_REG_CIS_SCAN_ENABLE, FPGA_REG_CIS_SCAN_ENABLE);
 	else if (arg == 1)
