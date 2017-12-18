@@ -30,6 +30,7 @@
 #include <asm/uaccess.h>
 #include <linux/fs.h>
 #include <linux/delay.h>
+#include <linux/jiffies.h>
 
 #include "../fpga.h"
 #include "../fpga_io.h"
@@ -48,6 +49,21 @@
 
 #define  GPIO_VALUE_HIGH 1
 #define  GPIO_VALUE_LOW  0
+
+#if defined(CONFIG_REG_DOWNLOAD)
+#define CONFIG_BIT_CLK		BIT(26)
+#define CONFIG_BIT_DATA		BIT(29)
+
+#undef  CONFIG_REG_DOWNLOAD_FAST
+#define CONFIG_REG_DOWNLOAD_FAST
+
+#if defined(CONFIG_REG_DOWNLOAD_FAST)
+#define write_cpu_reg(reg, value)	(*gpio1reg = value)
+#else
+#define write_cpu_reg(reg, value)	writel(value, reg)
+#endif
+
+#endif
 
 struct fpga_interrupt_defs
 {
@@ -121,8 +137,8 @@ static ssize_t reset_set(struct device *dev, struct device_attribute *attr, cons
 
 static ssize_t config_set(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {	
-	int ret;
-	
+	int ret;	
+
 	/*start download fpga*/
 	ret = download_proc(fw, "top_check_scanner.bin");
 	if(!ret)	
@@ -283,17 +299,17 @@ static inline void fpga_reset_interrupts(void)
 /* download fpga bin data */
 int download_proc(const struct firmware *fw, const char *fw_name)
 {
-	unsigned int i, j, k; 
+	unsigned int i; 
 	int gpio_clock, gpio_data;
-	u32 tmp, clk_high_tmp;
-	void __iomem *gpio1reg;
-	printk("fw_name:%s\n", fw_name);
+	unsigned long before, after;
 
+	printk(KERN_DEBUG "fw_name: %s\n", fw_name);
 	if(request_firmware(&fw, fw_name, &ghost_device))
 	{
-	    printk("request_firmware err!\n");
+	    printk(KERN_ERR "request_firmware err!\n");
 	    return -ENOENT;
 	}
+	printk(KERN_INFO "FPGA binary size: %d\n", fw->size);
 
 	gpio_direction_input(fpga_config_gpios[FPGA_CONFIG_DONE].gpio);
 	gpio_direction_input(fpga_config_gpios[FPGA_CONFIG_INIT].gpio);
@@ -307,10 +323,9 @@ int download_proc(const struct firmware *fw, const char *fw_name)
 
 	gpio_set_value(fpga_config_gpios[FPGA_CONFIG_PRG].gpio,  GPIO_VALUE_LOW);
 
-
 	i = 0xFFF;
 	while(gpio_get_value(fpga_config_gpios[FPGA_CONFIG_INIT].gpio) && --i);/*quest: FPGA_CONFIG_INIT is high? */ 
-	printk("gpio_get_value(FPGA_CONFIG_INIT)=%d\n", gpio_get_value(fpga_config_gpios[FPGA_CONFIG_INIT].gpio));	   
+	printk(KERN_DEBUG "gpio_get_value(FPGA_CONFIG_INIT)=%d\n", gpio_get_value(fpga_config_gpios[FPGA_CONFIG_INIT].gpio));	   
 	if(i == 0)
 	{
 		return 0;
@@ -325,47 +340,59 @@ int download_proc(const struct firmware *fw, const char *fw_name)
 		return 0;
 	}
 
-	printk("\n size : %d\n", fw->size);
 	gpio_data = fpga_config_gpios[FPGA_CONFIG_DATA].gpio;
 	gpio_clock = fpga_config_gpios[FPGA_CONFIG_CLK].gpio;
 
-	gpio1reg = IOMEM(0xc0810000);
-	tmp = readl(gpio1reg);
-	clk_high_tmp =  tmp | BIT(26);
+	before = jiffies;
 
-	for(j = 0; j < fw->size; j++)
+#if defined(CONFIG_REG_DOWNLOAD)
 	{
-		u8 data = fw->data[j];
-		local_irq_disable();
-		for (k = 0; k < 8; k++)
+		volatile u32 __iomem *gpio1reg = IOMEM(0xc0810000);
+		register u8 *ptr;
+		register u32 val;
+		val = readl(gpio1reg);
+		ptr = (u8 *)fw->data;
+		for (i = 0; i < fw->size; i++)
 		{
-#if defined(CONFIG_REG_DOWMLOAD)
-			int bit = (data & 0x80) ? BIT(29) : 0;
-			int val = (clk_high_tmp & ~BIT(29)) | bit;
+			register u8 data = *ptr++;
+			register int j;
+			local_irq_disable();
+			for (j = 0; j < 8; j++)
+			{
+				val &= ~CONFIG_BIT_DATA;
+				val |= (data & 0x80) ? CONFIG_BIT_DATA : 0;
+				val |= CONFIG_BIT_CLK;
+				write_cpu_reg(gpio1reg, val);
+				val &= ~CONFIG_BIT_CLK;
+				data <<= 1;
+				write_cpu_reg(gpio1reg, val);
+			}
+			local_irq_enable();
+		}
+	}
 #else
+	for(i = 0; i < fw->size; i++)
+	{
+		u8 data = fw->data[i];
+		int j;
+		local_irq_disable();
+		for (j = 0; j < 8; j++)
+		{
 			int bit = (data & 0x80) ? GPIO_VALUE_HIGH : GPIO_VALUE_LOW;
-#endif
-			data <<= 1;
 
-#if defined(CONFIG_REG_DOWMLOAD)
-			writel(val , gpio1reg);
-			//for (i = 0; i < 10; i++);
-			val = val & ~BIT(26);
-			writel(val, gpio1reg);
-			//for (i = 0; i < 10; i++);
-#else
+			data <<= 1;
 			gpio_set_value(gpio_clock, GPIO_VALUE_LOW);
 			gpio_set_value(gpio_data, bit);
 			gpio_set_value(gpio_clock, GPIO_VALUE_HIGH);
 			gpio_set_value(gpio_data, bit);
-
-#endif
-		} 
-		local_irq_enable();		
+		}
+		local_irq_enable();
 	}
-		
-	printk("fpga write end\n");
-      
+#endif
+	after = jiffies;
+	printk(KERN_DEBUG "download time = %d (ms): %u -> %u\n", jiffies_to_msecs(after-before), jiffies_to_msecs(before), jiffies_to_msecs(after));
+	printk(KERN_INFO "fpga configuration end\n");
+
 	i = 0xFFF;
 	while(!gpio_get_value(fpga_config_gpios[FPGA_CONFIG_DONE].gpio) && --i);
 
@@ -703,8 +730,8 @@ err_fpga_clk:
 
 int fpga_clk_fetch(struct device *dev)
 {
-	struct clk		*fpga_bus;
-	struct clk		*fpga_clk;
+	struct clk *fpga_bus = NULL;
+	struct clk *fpga_clk = NULL;
 	struct device_node *np = dev->of_node;
 	int ret;
 
@@ -732,7 +759,7 @@ int fpga_clk_fetch(struct device *dev)
 	}
 	printk(KERN_INFO "fpga_clock_core_init!\n");
 	
-	return 0;	
+	return 0;
 
 }
 #ifdef CONFIG_FPGA_SPI
@@ -947,7 +974,6 @@ static int fpga_io_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct device_node *np = pdev->dev.of_node;
-	u32 reset_buf[8];
 	u32 reg[3];
 	u32 fpga_cs;
 	u32 tmp1, tmp2;

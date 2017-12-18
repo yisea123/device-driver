@@ -4,7 +4,7 @@ PWD := $(shell pwd)
 obj-m := fpga_io.o fpga_debug_eim.o 
 
 #specify flags for the module compilation
-EXTRA_CFLAGS=-g -O3 -march=armv7-a -mtune=cortex-a8 -mfpu=neon -ftree-vectorize -mfloat-abi=softfp -D CONFIG_FPGA_EIM -D CONFIG_REG_DOWMLOAD
+EXTRA_CFLAGS=-g -O3 -march=armv7-a -mtune=cortex-a8 -mfpu=neon -ftree-vectorize -mfloat-abi=softfp -D CONFIG_FPGA_EIM -D CONFIG_REG_DOWNLOAD
 
 #build: kernel_modules
 
