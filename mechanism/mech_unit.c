@@ -517,7 +517,7 @@ void mechunit_dcmotor_callback(struct dcmotor *motor,struct callback_data *pcall
  
 	motor_get_data(&pmech_dev->mech_unit_data.unit_motor_data, motor_mask, pmotor_data, i); 
 	if (i == pmech_dev->mech_unit_data.unit_motor_data.motor_num) {
-		pmech_dev->sigio_event = MOTOR_STOP_BY_ABNORMAL|motor_mask;//(1<<motor_mask);
+		pmech_dev->sigio_event = MOTOR_STOP_BY_ABNORMAL | MOTOR_STOP_UINT_TO_RES(motor_mask);
 		mechunit_sigio(pmech_dev);
 		return;
 	}
@@ -561,30 +561,25 @@ void mechunit_dcmotor_callback(struct dcmotor *motor,struct callback_data *pcall
 			pmotor_data->stoping_status = MOTOR_STOP_BY_ABNORMAL; 
 			pmotor_data->err_status = -RESN_MECH_ERR_MOTOR_HW_ERR;
 		}
+		if((pmotor_data->stoping_status & MOTOR_STOP_MASK)!=MOTOR_STOP_BY_ABNORMAL)
+			mechunit_sigio(pmech_dev);
+
+		if (pmotor_data->motor_phase_accout != 0)
+			complete(&pmotor_data->motor_phase_completion);
+
 		if (pmotor_data->motor_comp_accout != 0)
 			complete_all(&(pmotor_data->motor_completion)); 
-		mechunit_sigio(pmech_dev);
+		
 		
 	}
-	else if (pmotor_data->moving_status) {
-        //printk(KERN_DEBUG "motor_phase_accout=%d motor_comp_accout=%d\n", pmotor_data->motor_phase_accout, pmotor_data->motor_comp_accout);
-		if (pmotor_data->motor_phase_accout != 0)
-			complete(&pmotor_data->motor_phase_completion);
-		if (pmotor_data->motor_comp_accout != 0)
-			complete_all(&(pmotor_data->motor_completion));
-		pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP;
-		pmotor_data->stoping_status = MOTOR_STOP_BY_ABNORMAL;
-		pmotor_data->err_status = -RESN_MECH_ERR_MOTOR_INT_INVALID;
-	}
 	else{
-		if (pmotor_data->motor_phase_accout != 0)
-			complete(&pmotor_data->motor_phase_completion);
-		if (pmotor_data->motor_comp_accout != 0)
-			complete_all(&(pmotor_data->motor_completion));
-
 		pmotor_data->stoping_status = MOTOR_STOP_BY_ABNORMAL; 
 		pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP;
 		pmotor_data->err_status = -RESN_MECH_ERR_MOTOR_INT_INVALID;
+		if (pmotor_data->motor_phase_accout != 0)
+			complete(&pmotor_data->motor_phase_completion);
+		if (pmotor_data->motor_comp_accout != 0)
+			complete_all(&(pmotor_data->motor_completion));
 	}
 
 	printk(KERN_DEBUG "mechunit_dcmotor_callback...........over! mech_sigio=%lx\n", pmech_dev->sigio_event);
