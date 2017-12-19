@@ -57,15 +57,9 @@ struct motor_data{
     /*#define MOTOR_MOVE_STATUS_NORMAL    0x000
     #define MOTOR_WAIT_TRIGER_TIMEOUT   0x100
     #define MOTOR_WAIT_STOP_TIMEOUT     0x200*/
-    #if MECH_OPTIMIZE_20170515
     unsigned char moving_status;
     unsigned long stoping_status;
-    #else
-    unsigned long moving_status;
-    #endif
-    #ifdef MECH_OPTIMIZE_20170606
     int err_status;
-    #endif
     motor_callback_t callback;
 };
 
@@ -102,22 +96,15 @@ static inline void motormove_err_callback(struct motor_data *pmotor_data, int re
 		if (pmotor_data->motor_comp_accout != 0)
     			complete_all(&(pmotor_data->motor_completion));
 	
-		#ifdef MECH_OPTIMIZE_20170515
 		pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP;
 		pmotor_data->stoping_status = MOTOR_STOP_BY_ABNORMAL;
-		#else
-		pmotor_data->moving_status |= MOTOR_STOP_BY_ABNORMAL;
-		//printk(KERN_INFO "moving_status=%x\n", pmotor_data->moving_status);
-		pmotor_data->moving_status &= ~(MOTOR_MOVE_STATUS_RUNNING|MOTOR_MOVE_STATUS_INUSE);
-		//printk(KERN_INFO "moving_status=%x\n", pmotor_data->moving_status);
-		#endif
+		
 		return;
 	default:
 		break;
 	}
 }
 
-#ifdef MECH_OPTIMIZE_20170606
 static inline  int step_motor_triger_deal(struct motor_data *pmotor_data, char triger_index, mechanism_uint_motor_data_t *punit_motor_data, mechanism_uint_sensor_data_t *punit_sensor_data)
 {
 	int ret = 0;
@@ -172,11 +159,7 @@ static inline  int step_motor_triger_deal(struct motor_data *pmotor_data, char t
 	return ret;
 
 }
-#endif
 
-#if 0//ndef MECH_OPTIMIZE_20170428
-extern int motor_init(mechanism_uint_motor_data_t *punit_motor_data, unsigned short motor_mask, void (*callback)(void *motor));
-#endif
 extern int motor_move_init(mechanism_uint_motor_data_t *punit_motor_data, unsigned short motor_mask);
 extern int motor_start(mechanism_uint_motor_data_t *punit_motor_data, mechanism_uint_sensor_data_t *punit_sensor_data, 
 	unsigned short motor_mask, unsigned char dir, motor_mov_t  *pmotor_mov);

@@ -51,17 +51,13 @@ struct mechanism_dev_t {
 	dev_t dev_no;
 	struct device *mech_dev;
 	struct class *mech_class;
-	#ifdef MECH_OPTIMIZE_20170502
 	mechunit_drv_status_t mech_unit_drv_status;
-	#endif
 };
 
 extern int mechunit_probe_get_devtree_pdata(struct device*dev, struct mechanism_uint_data *pmech_unit_data);
 extern void mechunit_sigio(struct mechanism_dev_t *pmechanism_dev);
-#ifdef MECH_OPTIMIZE_20170502
 extern int mechunit_probe(struct platform_device *pdev);
 extern int mechunit_remove(struct platform_device *pdev);
-#endif
 
 extern int mechunit_open(struct inode *inode, struct file *filep);
 extern int mechunit_close(struct inode *inode, struct file *filep);
@@ -114,7 +110,6 @@ static inline void stepmotor_callback(struct motor_data *pmotor_data, struct mec
 		printk(KERN_DEBUG "steppermotor_is_triggersteps_done，motor_phase_accout=%d\n", pmotor_data->motor_phase_accout);
 
 		if (pmotor_data->motor_phase_accout != 0){
-			#ifdef MECH_OPTIMIZE_20170606
 			pmotor_data->phase_current_num++;
 			if(pmotor_data->phase_current_num < pmotor_data->pmotor_mov->trigger_phase_num)
 			{
@@ -125,7 +120,6 @@ static inline void stepmotor_callback(struct motor_data *pmotor_data, struct mec
 					pmotor_data->err_status = ret;
 				}
 			}
-			#endif
 			complete(&pmotor_data->motor_phase_completion);
 			return;
 		}

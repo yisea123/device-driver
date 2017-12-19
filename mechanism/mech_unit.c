@@ -56,27 +56,6 @@ int mechunit_get_sensors_rawinput(struct mechanism_uint_data *punit_data, mech_u
 		psen_raw_input->sen_raw_input[i].raw_input_value[0] = 0;
 	}
 
-#ifdef MECH_SENSOR_TEST_20170509
-	for (i = 0; i < psen_raw_input->sen_num; i++) {
-			ret = sensor_get_val(&(punit_data->unit_sensor_data), 
-						psen_raw_input->sen_raw_input[i].sen_mask, 
-					     &(psen_raw_input->sen_raw_input[i].raw_input_value[0])); 
-			if (ret) 
-			{
-				printk(KERN_DEBUG "mechunit_sen_rawinput :err exit & mask=%x\n", psen_raw_input->sen_raw_input[i].sen_mask);
-				goto exit;
-			}
-
-			psen_raw_input->sen_raw_input[i].raw_input_value[1] = psen_raw_input->sen_raw_input[i].raw_input_value[0];
-			for (j=2; j<=SENSOR_RAW_GET_NUM; j++) {
-				 psen_raw_input->sen_raw_input[i].raw_input_value[j] = psen_raw_input->sen_raw_input[i].raw_input_value[j-1];
-			}
-			psen_raw_input->sen_raw_input[i].raw_input_value[0] *= SENSOR_RAW_GET_NUM;
-			usleep()
-			
-		}
-
-#else
 	for (j=1; j<=SENSOR_RAW_GET_NUM; j++) {
 		for (i = 0; i < psen_raw_input->sen_num; i++) {
 			ret = sensor_get_val(&(punit_data->unit_sensor_data), 
@@ -90,7 +69,7 @@ int mechunit_get_sensors_rawinput(struct mechanism_uint_data *punit_data, mech_u
 			}
 		}
 	}
-#endif
+
 	for (i=0; i < psen_raw_input->sen_num; i++) {
 		psen_raw_input->sen_raw_input[i].raw_input_value[0] /= 10;
 	}
@@ -359,7 +338,6 @@ int mechunit_probe_get_devtree_pdata(struct device*dev, struct mechanism_uint_da
 }
 EXPORT_SYMBOL_GPL(mechunit_probe_get_devtree_pdata);
 
-#ifdef MECH_OPTIMIZE_20170503
 #include "mechlib.h"
 void mechunit_probe_get_control(struct device*dev, struct mechanism_dev_t *pmechanism_dev)
 {	
@@ -380,8 +358,6 @@ void mechunit_probe_get_control(struct device*dev, struct mechanism_dev_t *pmech
 	pmechanism_dev->mech_unit_control.mech_unit_sen_raw_input.sen_num = sensor_num; 
 	pmechanism_dev->mech_unit_control.mech_unit_sen_raw_input.sen_raw_input = devm_kzalloc(dev, sizeof(sen_raw_input_t) * sensor_num, GFP_KERNEL); 
 }
-#endif
-
 EXPORT_SYMBOL_GPL(mechunit_probe_get_control);
 
 void mechunit_sigio(struct mechanism_dev_t *pmechanism_dev)
@@ -466,7 +442,6 @@ int mechunit_motor_init(mechanism_uint_motor_data_t *punit_motor_data, unsigned 
 }
 EXPORT_SYMBOL_GPL(mechunit_motor_init);
 
-#ifdef MECH_OPTIMIZE_20170428
 void mechunit_stepmotor_callback(struct steppermotor *motor, struct callback_data *pcall_back_data)
 {
 	struct motor_data *pmotor_data;
@@ -525,15 +500,7 @@ void mechunit_stepmotor_callback(struct steppermotor *motor, struct callback_dat
 			}
 		}
 	}
-	#ifdef MECH_SENSOR_INDEX_20170815
 	stepmotor_callback(pmotor_data, pmech_dev, status, MOTOR_STOP_UINT_TO_RES(motor_mask));
-	#else
-	#ifdef MECH_OPTIMIZE_20170515
-	stepmotor_callback(pmotor_data, pmech_dev, status, motor_mask);
-	#else
-	stepmotor_callback(pmotor_data, pmech_dev, status, (1<<(motor_mask-1)));
-	#endif
-	#endif
 	printk(KERN_DEBUG "mechunit_stepmotor_callback...........over! mech_sigio=%lx\n", pmech_dev->sigio_event);
     
 }
@@ -550,11 +517,7 @@ void mechunit_dcmotor_callback(struct dcmotor *motor,struct callback_data *pcall
  
 	motor_get_data(&pmech_dev->mech_unit_data.unit_motor_data, motor_mask, pmotor_data, i); 
 	if (i == pmech_dev->mech_unit_data.unit_motor_data.motor_num) {
-		#ifdef MECH_OPTIMIZE_20170515
 		pmech_dev->sigio_event = MOTOR_STOP_BY_ABNORMAL|motor_mask;//(1<<motor_mask);
-		#else
-		pmech_dev->sigio_event = MOTOR_STOP_BY_ABNORMAL|(1<<(motor_mask-1));
-		#endif
 		mechunit_sigio(pmech_dev);
 		return;
 	}
@@ -627,9 +590,7 @@ void mechunit_dcmotor_callback(struct dcmotor *motor,struct callback_data *pcall
 	printk(KERN_DEBUG "mechunit_dcmotor_callback...........over! mech_sigio=%lx\n", pmech_dev->sigio_event);
     
 }
-#endif
 
-#ifdef MECH_OPTIMIZE_20170502
 static	int 	mech_init(struct mechanism_dev_t * mech_dev, class_cmd *cptr)
 {
 	int ret=0, i;
@@ -883,14 +844,10 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 			printk(KERN_ERR "mechunit_ioctl GET_MECH_SENSORS_RAW: mechunit_get_sensors_rawinput fail\n");
 			goto mechunit_ioctl_ret;
 		}
-		#ifdef MECH_OPTIMIZE_20170503
 		put_user(mech_dev->mech_unit_control.mech_unit_sen_raw_input.sen_num, (int __user *)(&(((mech_unit_sen_raw_input_t *)argp)->sen_num)));
 		if (copy_to_user((void __user *)(((mech_unit_sen_raw_input_t *)argp)->sen_raw_input), 
 				 (void *)(mech_dev->mech_unit_control.mech_unit_sen_raw_input.sen_raw_input), 
 			sizeof(sen_raw_input_t)*mech_dev->mech_unit_control.mech_unit_sen_raw_input.sen_num))
-		#else
-		if (copy_to_user((void *)arg, (void *)&(mech_dev->mech_unit_control.mech_unit_sen_raw_input), sizeof(mech_unit_sen_raw_input_t))) 
-		#endif
 		{
 			printk(KERN_ERR "mechunit_ioctl GET_MECH_SENSORS_RAW: copy_to_user fail\n");
 			ret = -EFAULT;
@@ -930,14 +887,10 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 		goto mechunit_ioctl_ret;
 	case GET_MECH_CONFIG:
 		printk(KERN_DEBUG "GET_MECH_CONFIG!");
-		#ifdef MECH_OPTIMIZE_20170503
 		put_user(mech_dev->mech_unit_control.mech_unit_sen_config.sen_num, (int __user *)(&(((mech_unit_sen_config_t *)argp)->sen_num)));
 		if (copy_to_user((void __user *)(((mech_unit_sen_config_t *)argp)->sen_config), 
 			(void *)(mech_dev->mech_unit_control.mech_unit_sen_config.sen_config), 
 			sizeof(sen_config_t)*mech_dev->mech_unit_control.mech_unit_sen_config.sen_num)) 
-		#else
-		if (copy_to_user((void *)arg, (void *)&(mech_dev->mech_unit_control.mech_unit_sen_config), sizeof(mech_unit_sen_config_t))) 
-		#endif
 		{
 			printk(KERN_ERR "mechunit_ioctl GET_MECH_CONFIG: copy_to_user fail\n");
 			ret = -EFAULT;
@@ -945,14 +898,9 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 		}
 		goto mechunit_ioctl_ret;
 	case SET_MECH_CONFIG:
-		#ifdef MECH_OPTIMIZE_20170503
 		if (copy_from_user((void *)(mech_dev->mech_unit_control.mech_unit_sen_config.sen_config),
 			(void __user *)(((mech_unit_sen_config_t *)argp)->sen_config), 
 			sizeof(sen_config_t)*mech_dev->mech_unit_control.mech_unit_sen_config.sen_num)) 
-
-		#else
-		if(copy_from_user((void *)&(mech_dev->mech_unit_control.mech_unit_sen_config),(void *)arg,sizeof(mech_unit_sen_config_t)))
-		#endif
 		{
 			printk(KERN_ERR "mechunit_ioctl SET_MECH_CONFIG: copy_from_user fail\n");
 			ret = -EFAULT;
@@ -976,15 +924,6 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 		goto mechunit_ioctl_ret;
 	case GET_MECH_PPSFEATURE:
 		printk(KERN_DEBUG "GET_MECH_PPSFEATURE!");
-		#ifdef MECH_OPTIMIZE_20170503
-		#else
-		if (copy_from_user((void *)&(mech_dev->mech_unit_control.mech_unit_sen_feature), (void *)arg, sizeof(mech_unit_sen_feature_t)))
-		{
-			printk(KERN_ERR "mechunit_ioctl GET_MECH_PPSFEATURE: copy_from_user fail\n");
-			ret = -EFAULT;
-			goto mechunit_ioctl_ret;
-		}
-		#endif
 		printk(KERN_DEBUG "sen_num=%d \n", mech_dev->mech_unit_control.mech_unit_sen_feature.sen_num); 
 		ret = mechunit_get_sensor_feature(&mech_dev->mech_unit_data, &(mech_dev->mech_unit_control.mech_unit_sen_feature)); 
 		if (ret)
@@ -992,14 +931,11 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 			printk(KERN_ERR "mechunit_ioctl GET_MECH_PPSFEATURE: mechunit_get_sensor_feature fail & ret=%x\n", ret);
 			goto mechunit_ioctl_ret;
 		}
-		#ifdef MECH_OPTIMIZE_20170503
+
 		put_user(mech_dev->mech_unit_control.mech_unit_sen_feature.sen_num, (int __user *)(&(((mech_unit_sen_feature_t *)argp)->sen_num)));
 		if (copy_to_user((void __user *)(((mech_unit_sen_feature_t *)argp)->sen_feature), 
 			(void *)(mech_dev->mech_unit_control.mech_unit_sen_feature.sen_feature), 
 			sizeof(sen_feature_t)*mech_dev->mech_unit_control.mech_unit_sen_feature.sen_num)) 
-		#else
-		if(copy_to_user((void *)arg,(void *)&(mech_dev->mech_unit_control.mech_unit_sen_feature),sizeof(mech_unit_sen_feature_t)))
-		#endif
 		{
 			printk(KERN_ERR "mechunit_ioctl GET_MECH_PPSFEATURE: copy_to_user fail\n");
 			ret = -EFAULT;
@@ -1007,30 +943,16 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 		}
 		goto mechunit_ioctl_ret;
 	case GET_MECH_MOTORFEATURE:
-		#ifdef MECH_OPTIMIZE_20170503
-		#else
-		if(copy_from_user((void *)&(mech_dev->mech_unit_control.mech_unit_motor_feature),(void *)arg,sizeof(mech_unit_motor_feature_t)))
-		{
-			printk(KERN_ERR "mechunit_ioctl GET_MECH_MOTORFEATURE: copy_from_user fail\n");
-			ret = -EFAULT;
-			goto mechunit_ioctl_ret;
-		}
-		#endif
-
 		ret = mechunit_get_motor_feature(&mech_dev->mech_unit_data, &(mech_dev->mech_unit_control.mech_unit_motor_feature)); 
 		if (ret)
 		{
 			printk(KERN_ERR "mechunit_ioctl GET_MECH_MOTORFEATURE: mechunit_get_sensor_feature fail\n");
 			goto mechunit_ioctl_ret;
 		}
-		#ifdef MECH_OPTIMIZE_20170503
 		put_user(mech_dev->mech_unit_control.mech_unit_motor_feature.motor_num, (int __user *)(&(((mech_unit_motor_feature_t *)argp)->motor_num)));
 		if (copy_to_user((void __user *)(((mech_unit_motor_feature_t *)arg)->motor_feature), 
 				(void *)(mech_dev->mech_unit_control.mech_unit_motor_feature.motor_feature), 
 				sizeof(motor_feature_t) * mech_dev->mech_unit_control.mech_unit_motor_feature.motor_num)) 
-		#else
-		if(copy_to_user((void *)arg,(void *)&(mech_dev->mech_unit_control.mech_unit_motor_feature),sizeof(mech_unit_motor_feature_t)))
-		#endif
 		{
 			printk(KERN_ERR "mechunit_ioctl GET_MECH_MOTORFEATURE: copy_to_user fail\n");
 			ret = -EFAULT;
@@ -1121,9 +1043,7 @@ mechunit_ioctl_ret:
 	mech_dev->mech_status = IDLE;
 	return ret;
 }
-#endif
 
-#ifdef MECH_OPTIMIZE_20170502
 static ssize_t flag_show(struct device *dev, struct device_attribute *attr, char *buf );
 static ssize_t flag_set(struct device *dev, struct device_attribute *attr, const char *buf, size_t count);
 static ssize_t mech_show(struct device *dev, struct device_attribute *attr, char *buf );
@@ -1226,10 +1146,8 @@ int mechunit_probe(struct platform_device *pdev)
 	mechunit_probe_get_devtree_pdata(&pdev->dev, &pmechanism_dev->mech_unit_data);
 	printk(KERN_DEBUG "mech_unit_name=%s\n", pmechanism_dev->mech_unit_data.mech_unit_name); 
     
-
-#ifdef MECH_OPTIMIZE_20170503
 	mechunit_probe_get_control(&pdev->dev, pmechanism_dev);
-#endif
+
 	pmechanism_dev->dev_major = 0;
 
 	pmechanism_dev->dev_no = MKDEV(pmechanism_dev->dev_major, 0);
@@ -1314,10 +1232,8 @@ int mechunit_remove(struct platform_device *pdev)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(mechunit_remove);
-#endif
+
 //----------------------------------------------------------
-//#ifdef MECH_OPTIMIZE_20170508
-#if 1
 static const struct of_device_id mechanism_of_match[]={
     {.compatible = "gwi,mechanism",},
     {},
@@ -1336,21 +1252,7 @@ static struct platform_driver mechanism_driver={
 };
 
 module_platform_driver(mechanism_driver);
-#else
 
-static int __init mechunit_init(void)
-{
-	return 0;
-}
-
-
-static void __exit mechunit_init_exit(void)
-{
-	
-}
-module_init(mechunit_init);
-module_exit(mechunit_init_exit);
-#endif
 MODULE_AUTHOR("HL");
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("mech_unit driver module");
