@@ -95,7 +95,8 @@ static inline void motormove_err_callback(struct motor_data *pmotor_data, int re
     			complete(&pmotor_data->motor_phase_completion);
 		if (pmotor_data->motor_comp_accout != 0)
     			complete_all(&(pmotor_data->motor_completion));
-	
+
+		pmotor_data->err_status = ret;
 		pmotor_data->moving_status = MOTOR_MOVE_STATUS_STOP;
 		pmotor_data->stoping_status = MOTOR_STOP_BY_ABNORMAL;
 		
