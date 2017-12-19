@@ -288,7 +288,10 @@ int steppermotor_check_config(struct steppermotor *motor, const struct steppermo
 
 	/* check total steps and number of speed configuration */
 	if (config->steps_to_run <= 0 || config->steps_to_run > motor->feature.max_steps || config->num_speed <= 0) 
+	{
+		dev_err(motor->dev, "steppermotor_check_config error:steps %d %d or num_speed %d\n", config->steps_to_run, motor->feature.max_steps, config->num_speed);
 		return -EINVAL;
+	}
 
 	/* check speed configuration */
 	steps = 0;
@@ -296,17 +299,26 @@ int steppermotor_check_config(struct steppermotor *motor, const struct steppermo
 	for (i=0; i<config->num_speed; i++)
 	{
 		if (!speedinfo)
+		{
+			dev_err(motor->dev, "steppermotor_check_config error:speedinfo\n");
 			return -EINVAL;
+		}
 
 		ret = lookup_speedtable(motor, speedinfo->speed);
 		if (IS_ERR_VALUE(ret))	// requested speed is not supported
+		{
+			dev_err(motor->dev, "steppermotor_check_config error:speed %d\n", speedinfo->speed);
 			return -EINVAL;
+		}
 
 		steps += speedinfo->steps;
 		speedinfo = speedinfo->nextspeed;
 	}
 	if (steps != config->steps_to_run)
+	{
+		dev_err(motor->dev, "steppermotor_check_config error:steps_to_run %d %d\n", steps, config->steps_to_run);
 		return -EINVAL;
+	}
 
 	if (config->steps_to_run == 1)
 		return 0;
