@@ -28,7 +28,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 
 	printk(KERN_DEBUG "step_motor_start.................speed_phase_num=%d\n", pmotor_mov->speed_phase_num);
 	if ((pmotor_mov->speed_phase_num > STEPSPEED_PHASE_NUM) || (pmotor_mov->trigger_phase_num > STEPSPEED_PHASE_NUM)) {
-		return -1;
+		return -RESN_MECH_ERR_IVALID_CMD;
 	}
 
 	pmotor_data->pmotor_mov = pmotor_mov;
@@ -170,7 +170,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 				}
 
 				if ((pmotor_data->stoping_status & MOTOR_STOP_MASK) ==MOTOR_STOP_BY_ABNORMAL) {
-					ret = pmotor_data->err_status;					
+					ret = pmotor_data->err_status;
 				}
 				else
 					ret = 0;
@@ -320,51 +320,48 @@ static int brushdc_motor_wait_stop(struct motor_data *pmotor_data)
 	unsigned long time;
 	int ret=0;
 
-	if (pmotor_data->moving_status& MOTOR_STOP_STATUS)
-		return ret;
-
-	//printk(KERN_DEBUG "brushdc_motor_wait_stop:motor_comp_accout1=%d", pmotor_data->motor_comp_accout);
-	pmotor_data->motor_comp_accout++;
-	//printk(KERN_DEBUG "brushdc_motor_wait_stop:motor_comp_accout2=%d", pmotor_data->motor_comp_accout);
-
-	//printk(KERN_DEBUG "brushdc_motor_wait_stop %x %x %s\n", (int)pmotor_data, pmotor_data->motor_comp_accout, pmotor_data->motor_name); 
-	//printk(KERN_DEBUG "motor_completion =%x motor_comp_accout=%d\n",(int)&(pmotor_data->motor_completion), pmotor_data->motor_comp_accout);
-
-	//printk(KERN_DEBUG "brushdc_motor_wait_stop & moving_status=%x\n", pmotor_data->moving_status);
-
 	if (pmotor_data->pmotor_mov->motor_trigger_phase[0].sen_mask)
 		time = pmotor_data->pmotor_mov->motor_trigger_phase[0].to_trigger_steps*3/2;
 	else
 		time = pmotor_data->pmotor_mov->motor_trigger_phase[0].to_trigger_steps;
 
-
-	if ((pmotor_data->moving_status==MOTOR_MOVE_STATUS_RUNNING)&&(!(timeout_ret = wait_for_completion_timeout(&(pmotor_data->motor_completion), 
-		time))))
+	if (pmotor_data->moving_status == MOTOR_MOVE_STATUS_RUNNING) 
 	{
-		printk(KERN_INFO "brushdc_motor_wait_stop timeout!\n");
-		if (pmotor_data->pmotor_mov->motor_trigger_phase[0].sen_mask) {	//for (sen_mask==0)，need to stop motor by software
-			ret = -RESN_MECH_ERR_MOTOR_WAIT_STOP_TIMEOUT;
-			motormove_err_callback(pmotor_data, ret);
+
+		//printk(KERN_DEBUG "brushdc_motor_wait_stop:motor_comp_accout1=%d", pmotor_data->motor_comp_accout);
+		pmotor_data->motor_comp_accout++;
+		//printk(KERN_DEBUG "brushdc_motor_wait_stop:motor_comp_accout2=%d", pmotor_data->motor_comp_accout);
+
+		//printk(KERN_DEBUG "brushdc_motor_wait_stop %x %x %s\n", (int)pmotor_data, pmotor_data->motor_comp_accout, pmotor_data->motor_name); 
+		//printk(KERN_DEBUG "motor_completion =%x motor_comp_accout=%d\n",(int)&(pmotor_data->motor_completion), pmotor_data->motor_comp_accout);
+
+		//printk(KERN_DEBUG "brushdc_motor_wait_stop & moving_status=%x\n", pmotor_data->moving_status);
+		if (!(timeout_ret = wait_for_completion_timeout(&(pmotor_data->motor_completion), time)))
+		{
+			printk(KERN_INFO "brushdc_motor_wait_stop timeout!\n");
+			if (pmotor_data->pmotor_mov->motor_trigger_phase[0].sen_mask) {	//for (sen_mask==0)，need to stop motor by software
+				ret = -RESN_MECH_ERR_MOTOR_WAIT_STOP_TIMEOUT;
+				motormove_err_callback(pmotor_data, ret);
+			}
+			brushdc_motor_stop(pmotor_data); 	//because stop do not cause interrupt, so brushdc_motor_stop must before callback.
+			//printk(KERN_INFO "brushdc_motor_wait_stop1& moving_status=%x\n", pmotor_data->moving_status);
 			
-		}
-		brushdc_motor_stop(pmotor_data); 	//because stop do not cause interrupt, so brushdc_motor_stop must before callback.
-		//printk(KERN_INFO "brushdc_motor_wait_stop1& moving_status=%x\n", pmotor_data->moving_status);
-		
-		if (!pmotor_data->pmotor_mov->motor_trigger_phase[0].sen_mask) 	//for (sen_mask==0)，need to stop motor by software
-			pmotor_data->callback.dcmotor_callback(pmotor_data->motor_dev.pdcmotor, &(pmotor_data->motor_dev.pdcmotor->callbackdata));
+			if (!pmotor_data->pmotor_mov->motor_trigger_phase[0].sen_mask) 	//for (sen_mask==0)，need to stop motor by software
+				pmotor_data->callback.dcmotor_callback(pmotor_data->motor_dev.pdcmotor, &(pmotor_data->motor_dev.pdcmotor->callbackdata));
 
-		//else
-		//	complete_all(&(pmotor_data->motor_completion)); 
-		
-		//printk(KERN_INFO "brushdc_motor_wait_stop2& moving_status=%x\n", pmotor_data->moving_status);
-	}
-	else
-	{
-		if (pmotor_data->stoping_status==MOTOR_STOP_BY_ABNORMAL) {
-			ret = pmotor_data->err_status;
+			//else
+			//	complete_all(&(pmotor_data->motor_completion)); 
+			
+			//printk(KERN_INFO "brushdc_motor_wait_stop2& moving_status=%x\n", pmotor_data->moving_status);
 		}
+		else
+		{
+			if (pmotor_data->stoping_status==MOTOR_STOP_BY_ABNORMAL) {
+				ret = pmotor_data->err_status;
+			}
+		}
+		pmotor_data->motor_comp_accout--;
 	}
-	pmotor_data->motor_comp_accout--;
 
 	printk(KERN_DEBUG "brushdc_motor_wait_stop3& moving_status=%x\n", pmotor_data->moving_status);
 
