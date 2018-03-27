@@ -297,8 +297,7 @@ static void imx_pwm_set_enable_v3(struct pwm_chip *chip, bool enable)
 	if(enable)
 	{
 		//interrupt
-		val = readl(imx->mmio_base + MX3_PWMIR);
-		val |= MX3_PWMIR_CIE;
+		val = MX3_PWMIR_RIE;
 		writel(val, imx->mmio_base + MX3_PWMIR);
 		//enable
 		val = readl(imx->mmio_base + MX3_PWMCR);
@@ -312,8 +311,7 @@ static void imx_pwm_set_enable_v3(struct pwm_chip *chip, bool enable)
 		val &= ~MX3_PWMCR_EN;
 		writel(val, imx->mmio_base + MX3_PWMCR);
 		//interrupt
-		val = readl(imx->mmio_base + MX3_PWMIR);
-		val &= ~MX3_PWMIR_CIE;
+		val = 0;
 		writel(val, imx->mmio_base + MX3_PWMIR);
 	}
 }

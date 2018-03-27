@@ -30,7 +30,7 @@
 #define GPIO_VALUE_HIGH 	1
 #define GPIO_VALUE_LOW  	0
 #define STEPMOTO_GPIO_NUM	2
-#define DRIVER_IC_DUTY		1000	//>470ns
+#define DRIVER_IC_DUTY		100000	//>470ns
 #define DEFAULT_PERIOD		2000000
 #endif
 
@@ -363,17 +363,10 @@ irqreturn_t pwm_stepmotor_isr(int irq, void *dev_id)
 		if(p_running_info->p_speed_cur < p_running_info->p_acc_ramp_table 
 		+ p_running_info->acc_ramp_table_size)
 		{
-			/* 由于PWM周期写入FIFO后，在下一个周期才会取，因此会造成FIFO满的问题，
-			 * 所以每两个周期改变一次，防止FIFO满，注意pwm_config函数用于中断中不
-			 * 能有延时否则造成任务冲突
-			*/
-			if(p_running_info->step_lose % 2)
-			{
-				pwm_config(motordev->pwm, duty, *p_running_info->p_speed_cur);
-				spin_lock_irqsave(&p_running_info->running_info_lock, irq_flags);
-				p_running_info->p_speed_cur++;
-				spin_unlock_irqrestore(&p_running_info->running_info_lock, irq_flags);
-			}
+			pwm_config(motordev->pwm, duty, *p_running_info->p_speed_cur);
+			spin_lock_irqsave(&p_running_info->running_info_lock, irq_flags);
+			p_running_info->p_speed_cur++;
+			spin_unlock_irqrestore(&p_running_info->running_info_lock, irq_flags);
 		}
 		else	//加速完毕，切换到匀速模式
 		{
@@ -398,18 +391,11 @@ irqreturn_t pwm_stepmotor_isr(int irq, void *dev_id)
 		if(p_running_info->p_speed_cur < p_running_info->p_dec_ramp_table
 		+ p_running_info->dec_ramp_table_size)
 		{
-			/* 由于PWM周期写入FIFO后，在下一个周期才会取，因此会造成FIFO满的问题，
-			 * 所以每两个周期改变一次，防止FIFO满，注意pwm_config函数用于中断中不
-			 * 能有延时否则造成任务冲突
-			*/
-			if(p_running_info->step_lose % 2)
-			{
-				pwm_config(motordev->pwm, duty, *p_running_info->p_speed_cur);
-				spin_lock_irqsave(&p_running_info->running_info_lock, irq_flags);
-				//pwm_config(motordev->pwm, duty, *p_running_info->p_speed_cur);
-				p_running_info->p_speed_cur++;
-				spin_unlock_irqrestore(&p_running_info->running_info_lock, irq_flags);
-			}
+			pwm_config(motordev->pwm, duty, *p_running_info->p_speed_cur);
+			spin_lock_irqsave(&p_running_info->running_info_lock, irq_flags);
+			//pwm_config(motordev->pwm, duty, *p_running_info->p_speed_cur);
+			p_running_info->p_speed_cur++;
+			spin_unlock_irqrestore(&p_running_info->running_info_lock, irq_flags);
 		}
 	}
 	//printk("(%d_%d)", p_running_info->running_st, *(p_running_info->p_speed_cur - 1));
