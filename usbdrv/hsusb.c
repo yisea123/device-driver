@@ -14,10 +14,22 @@
 #include <linux/timer.h>
 #include <asm/uaccess.h>
 
+#include <linux/gpio.h>
+#include <linux/io.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+#include <linux/of_gpio.h>
+
+#include "hsusb.h"
+
 #include "composite.c"
 #include "usbstring.c"
 #include "config.c"
 #include "epautoconf.c"
+
+struct gpio *usb_reset_gpios;
+#define  GPIO_VALUE_HIGH 1
+#define  GPIO_VALUE_LOW  0
 
 #define SEND_BUFLEN (128*1024)
 #define RECV_BUFLEN (1024)
@@ -43,6 +55,7 @@ struct f_sendrecv {
 	struct usb_ep       *in_ep;
 	struct usb_ep       *out_ep;
 	struct completion gdt_completion;
+	spinlock_t		lock;
 	unsigned char data[RECV_BUFLEN];
 	unsigned int actual;//actual date len
 	wait_queue_head_t rx_wait; 
@@ -399,6 +412,20 @@ static int hsusb_open(struct inode *inode, struct file *filp)
 	return 0;
 }
 
+static int hsusb_hard_reset(struct f_sendrecv *ss)
+{
+
+	printk(KERN_ERR "*****husb reset\n");
+//	gpio_direction_output(usb_reset_gpios->gpio, GPIOF_OUT_INIT_LOW);
+	gpio_set_value(usb_reset_gpios->gpio,  GPIO_VALUE_HIGH);
+
+	mdelay(200);
+	gpio_set_value(usb_reset_gpios->gpio,  GPIO_VALUE_LOW);
+	
+	return 0;
+
+}
+
 static ssize_t hsusb_read(struct file *filp, char __user * buf, size_t count, loff_t * f_pos)
 {
 	struct usb_request  *req;
@@ -484,12 +511,13 @@ static ssize_t hsusb_write(struct file *filp, const char __user * buf, size_t co
         }
 	ss->is_write = false;
 
-	return ss->actual;	
+	return ss->actual;
 
 fail:
 	free_ep_req(ss->in_ep, req);
 fail_2:
 	ss->actual = 0;
+//	hsusb_hard_reset(ss);
 	return ret;
 }
 
@@ -515,13 +543,44 @@ static unsigned int hsusb_poll(struct file *filp, struct poll_table_struct *wait
 	return status;
 }
 
+
+static long
+hsusb_ioctl(struct file *fd, unsigned int code, unsigned long arg)
+{
+//	struct printer_dev	*dev = fd->private_data;
+	struct f_sendrecv 	*ss = fd->private_data;
+	unsigned long		flags;
+
+	printk(KERN_ERR "%s\n", __func__); 
+//	DBG(dev, "printer_ioctl: cmd=0x%4.4x, arg=%lu\n", code, arg);
+	printk(KERN_ERR "printer_ioctl: cmd=0x%4.4x, arg=%lu\n", code, arg);
+
+	/* handle ioctls */
+
+//	spin_lock_irqsave(&ss->lock, flags);
+
+	switch (code) {
+	case SET_HSUSB_SOFTRESET:
+		hsusb_hard_reset(ss);
+		break;
+	default:
+		return -EINVAL;
+	}
+
+//	spin_unlock_irqrestore(&ss->lock, flags);
+
+	return 0;
+}
+
+
 static struct file_operations hsusb_fops = {
-	owner:THIS_MODULE,
-	open:hsusb_open,
-	read:hsusb_read,
-	write:hsusb_write,
-	release:hsusb_release,
-	poll: hsusb_poll,
+	.owner = 	THIS_MODULE,
+	.open = 	hsusb_open,
+	.read = 	hsusb_read,
+	.write = 	hsusb_write,
+	.release = 	hsusb_release,
+	.poll =		hsusb_poll,
+	.unlocked_ioctl = hsusb_ioctl,
 };
 
 
@@ -607,6 +666,36 @@ static struct usb_composite_driver hsusb_driver = {
 	.bind      = hsusb_bind,
 };
 
+int gpio_init_from_dts(struct device *dev)
+{
+	int ret;
+	struct device_node *np = dev->of_node; 
+
+	usb_reset_gpios = devm_kzalloc(dev, 2*sizeof(struct gpio), GFP_KERNEL);
+	if (usb_reset_gpios == NULL)
+		return -ENOMEM;
+	
+	printk("gpio_init_from_dts enter!\n");
+	usb_reset_gpios->gpio = of_get_named_gpio(np, "config_usb_gpio", 0);
+	if (!usb_reset_gpios->gpio) {
+		dev_err(dev, "no config_usb_gpio pin available\n");
+		goto err;
+	}
+	usb_reset_gpios->flags = GPIOF_OUT_INIT_LOW;
+	usb_reset_gpios->label = "config_usb_gpio";
+	printk("gpio_init_from_dts: gpio_request_one=%d!\n", usb_reset_gpios->gpio);
+	ret = gpio_request_one(usb_reset_gpios->gpio, usb_reset_gpios->flags, usb_reset_gpios->label);
+	printk("gpio_request_one: ret=%d!\n", ret);
+	if(ret)
+	   return ret; 
+
+	gpio_direction_output(usb_reset_gpios->gpio, GPIOF_OUT_INIT_LOW); 
+	printk("gpio_init_from_dts over!\n");
+
+err:
+	return 0;
+}
+
 static int plat_hsusb_probe(struct platform_device *pdev)
 {
 	int ret;
@@ -615,6 +704,13 @@ static int plat_hsusb_probe(struct platform_device *pdev)
 //	unsigned char usbclass;
 	unsigned int usbclass, productid;
 
+	ret =  gpio_init_from_dts(&pdev->dev);
+	if (ret)
+	{
+		dev_err(&pdev->dev, "Failed to init gpio from dts: %d\n",ret);
+		return ret;
+	}
+	
 	ret= of_property_read_string(np, "usb-product-name", &ptr);
 	if (ret){
 		pr_debug("plat_hsusb_probe:Failed to read name of usb product name!\n");
