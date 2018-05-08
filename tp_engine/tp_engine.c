@@ -38,9 +38,15 @@ struct tp_engine_dev_t
 {
 	struct cdev cdev;
 	struct device *dev;
+	struct device *peng_dev;
+	struct class *tp_eng_class;
 	dev_t dev_no;
 	struct tp_engine_t tp_engine;
 };
+
+/********************************************** 
+ * LOCAL VARIABLE
+ **********************************************/
 
 /********************************************************
  * LOCAL FUNCTIONS
@@ -451,19 +457,33 @@ int tp_engine_probe(struct platform_device * pdev)
 		ret = alloc_chrdev_region(&ptp_engine_dev->dev_no, 0, 1, ptp_engine_dev->tp_engine.tp_engine_name);
 		tp_engine_dev_major = MAJOR(ptp_engine_dev->dev_no);
 	}
-	printk(KERN_NOTICE "tp engine dev: major %d, dev_no %d, ret %x", tp_engine_dev_major, ptp_engine_dev->dev_no, ret);
+	printk(KERN_NOTICE "tp engine dev: major %d, dev_no %d, ret %x\n", tp_engine_dev_major, ptp_engine_dev->dev_no, ret);
 	if(ret < 0)
 	{
-		printk(KERN_ERR "ERROR tp_engine register chrdev err = %x", ret);
+		printk(KERN_ERR "ERROR tp_engine register chrdev ret = %x\n", ret);
 		goto __exit__;
 	}
 	cdev_init(&ptp_engine_dev->cdev, &tp_engine_fops);
 	ptp_engine_dev->cdev.owner = THIS_MODULE;
+
+	ptp_engine_dev->tp_eng_class = class_create(THIS_MODULE, ptp_engine_dev->tp_engine.tp_engine_name);
+	if(IS_ERR(ptp_engine_dev->tp_eng_class))
+	{
+		printk(KERN_ERR "Error %x class_create\n", (int)(ptp_engine_dev->tp_eng_class));
+		return PTR_ERR(ptp_engine_dev->tp_eng_class);
+	}
+
+	ptp_engine_dev->peng_dev = device_create(ptp_engine_dev->tp_eng_class, NULL, ptp_engine_dev->dev_no, NULL, ptp_engine_dev->tp_engine.tp_engine_name);
+	if(IS_ERR(ptp_engine_dev->peng_dev))
+	{
+		printk(KERN_ERR "Error %x device_create\n", (int)(ptp_engine_dev->peng_dev));
+		return PTR_ERR(ptp_engine_dev->peng_dev);
+	}
 	
 	ret = cdev_add(&ptp_engine_dev->cdev, ptp_engine_dev->dev_no, 1);
 	if(ret)
 	{
-		printk(KERN_NOTICE "Error %d add tp_engine cdev", ret);
+		printk(KERN_NOTICE "Error %d add tp_engine cdev\n", ret);
 		cdev_del(&ptp_engine_dev->cdev);
 		unregister_chrdev_region(ptp_engine_dev->dev_no, 1);
 		goto __exit__;
@@ -480,8 +500,11 @@ int tp_engine_remove(struct platform_device *pdev)
 	struct tp_engine_dev_t *ptp_engine_dev = platform_get_drvdata(pdev);
 
 	printk(KERN_DEBUG "tp_engine Driver - exit\n");
+	device_destroy(ptp_engine_dev->tp_eng_class, ptp_engine_dev->dev_no);
+	class_destroy(ptp_engine_dev->tp_eng_class);
 	cdev_del(&ptp_engine_dev->cdev);
 	unregister_chrdev_region(ptp_engine_dev->dev_no, 1);
+
 	return ret;
 }
 EXPORT_SYMBOL_GPL(tp_engine_remove);
