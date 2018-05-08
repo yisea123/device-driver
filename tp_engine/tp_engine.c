@@ -23,7 +23,9 @@
 #include <linux/slab.h>
 
 #include "tp_engine_ph.h"
-#include "tp_engine_motor.h"
+#include "tp_engine_pap_motor.h"
+#include "tp_engine_ph_motor.h"
+#include "tp_engine_ribbon_motor.h"
 #include "tp_engine_sensor.h"
 #include "tp_engine.h"
 
@@ -36,6 +38,7 @@ struct tp_engine_dev_t
 {
 	struct cdev cdev;
 	struct device *dev;
+	dev_t dev_no;
 	struct tp_engine_t tp_engine;
 };
 
@@ -43,129 +46,149 @@ struct tp_engine_dev_t
  * LOCAL FUNCTIONS
  ********************************************************/
 /* 从设备树获取设备并关联到数据结构 */
-static int tp_engine_devicetree_ph_parse(struct device_node *pnode, struct ph_data_t *pph_data, unsigned int ph_num)
+static int tp_engine_devicetree_ph_parse(struct device_node *pnode, struct ph_data_t *pph_data)
 {
-	struct device_node * pp;
 	const char * name;
 	unsigned int data;
 	int ret = 0;
 	
-	if(ph_num == 0)
-		return 0;
-	for_each_child_of_node(pnode, pp)
+	ret = of_property_read_u32(pnode, "ph_dev", &data);
+	if(ret)
 	{
-		ret = of_property_read_u32(pp, "ph_dev", &data);
-		if(ret)
-		{
-			printk(KERN_ERR "ERROR %s %d\n", __FUNCTION__, __LINE__);
-			return ret;
-		}
-		//pph_data->ptp_ph = data;
-		ret = of_property_read_string(pp, "ph_name", &name);
-		if(ret)
-		{
-			printk(KERN_ERR "ERROR %s %d\n", __FUNCTION__, __LINE__);
-			return ret;
-		}
-		strcpy(pph_data->ph_name, name);
-		ret = of_property_read_u32(pp, "ph_mask", &data);
-		if(ret)
-		{
-			printk(KERN_ERR "ERROR %s %d\n", __FUNCTION__, __LINE__);
-			return ret;
-		}
-		pph_data->ph_mask = data;
+		printk(KERN_ERR "ERROR %s %d\n", __FUNCTION__, __LINE__);
+		return ret;
 	}
-	return ret;
+	//pph_data->ptp_ph = data;
+	ret = of_property_read_string(pnode, "ph_name", &name);
+	if(ret)
+	{
+		printk(KERN_ERR "ERROR %s %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	strcpy(pph_data->ph_name, name);
+	ret = of_property_read_u32(pnode, "ph_mask", &data);
+	if(ret)
+	{
+		printk(KERN_ERR "ERROR %s %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	pph_data->ph_mask = data;
+	return 0;
 }
 
 /* 从设备树获取设备并关联到数据结构 */
-static int tp_engine_devicetree_ph_resistor_parse(struct device_node *pnode, struct ph_resistor_data_t *ph_resistor_data, unsigned int ph_resistor_num)
+static int tp_engine_devicetree_ph_resistor_parse(struct device_node *pnode, struct ph_resistor_data_t *ph_resistor_data)
 {
 	int ret = 0;
 	return ret;
 }
 
-/* 从设备树获取设备并关联到数据结构 */
-static int tp_engine_devicetree_motor_parse(struct device_node *pnode, struct motor_data_t *pmotor_data, unsigned int motor_num)
+static int tp_engine_devicetree_pap_motor_parse(struct device_node *pnode, struct pap_motor_data_t *pmotor_data)
 {
 	int ret = 0;
-	struct device_node * pp, * pmotor_dev;
-	const char * pname, *pmotor_type;
-	unsigned int data, i;
-	
-	printk(KERN_DEBUG "NOTICE %s ==> %d\n", __FUNCTION__, __LINE__);
-	if(motor_num == 0)
-		return 0;
-	for_each_child_of_node(pnode, pp)
+	struct device_node * pmotor_dev;
+	const char * pname;
+	unsigned int data;
+	ret = of_property_read_string(pnode, "motor_name", &pname);
+	if(ret)
 	{
-		ret = of_property_read_string(pp, "motor_name", &pname);
-		if(ret)
-		{
-			printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
-			return ret;
-		}
-		strcpy(pmotor_data->motor_name, pname);
-		ret = of_property_read_string(pp, "motor_type", &pmotor_type);
-		if (ret)
-		{
-			printk(KERN_ERR "mechunit_probe_get_motor:Failed to read type of motor!\n");
-			return ret;
-		}
-		ret = of_property_read_u32(pp,"motor_mask",&data);
-		if (ret)
-		{
-			printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
-			return ret;
-		}
-		pmotor_data->motor_mask = data;
-		ret = of_property_read_u32(pp,"motor_dev",&data);
-		if (ret)
-		{
-			printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
-			return ret;
-		}
-		pmotor_dev = of_find_node_by_phandle(data);
-		if (pmotor_dev == NULL)
-		{
-			printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
-			return -1;
-		}
-		if (!strcmp(pmotor_type, "stepper_motor"))
-		{
-			pmotor_data->motor_type = MOTOR_TYPE_STEP;
-			pmotor_data->motor_dev.pstepmotor = of_node_to_steppermotor(pmotor_dev); 
-			if (pmotor_data->motor_dev.pstepmotor == ERR_PTR(-EPROBE_DEFER))
-			{
-				printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
-				return -1;
-			}
-			else 
-				printk(KERN_DEBUG "DEBUG %s ==> %d\n", __FUNCTION__, __LINE__);
-
-		}
-		else if (!strcmp(pmotor_type, "brdc_motor"))
-		{
-			pmotor_data->motor_type = MOTOR_TYPE_BRUSHDC;
-			pmotor_data->motor_dev.pdcmotor = of_node_to_dcmotor(pmotor_dev); 
-			if (pmotor_data->motor_dev.pdcmotor == ERR_PTR(-EPROBE_DEFER))
-			{
-				printk(KERN_DEBUG "DEBUG %s ==> %d\n", __FUNCTION__, __LINE__);
-				return -1;
-			}
-			else
-			{
-				printk(KERN_DEBUG "DEBUG %s ==> %d\n", __FUNCTION__, __LINE__);
-			}
-		}
-		printk(KERN_DEBUG "motor: name = %s, mask = %d\n", pmotor_data->motor_name, pmotor_data->motor_mask);
-		i++;
-		if(i == motor_num)
-			break;
-		else
-			pmotor_data += 1;
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
 	}
-	return ret;
+	strcpy(pmotor_data->motor_name, pname);
+	ret = of_property_read_u32(pnode,"motor_mask",&data);
+	if (ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	pmotor_data->motor_mask = data;
+	ret = of_property_read_u32(pnode,"motor_dev",&data);
+	if (ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	pmotor_dev = of_find_node_by_phandle(data);
+	pmotor_data->pstepmotor = of_node_to_steppermotor(pmotor_dev); 
+	if (pmotor_data->pstepmotor == ERR_PTR(-EPROBE_DEFER))
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return -1;
+	}
+	return 0;
+}
+
+static int tp_engine_devicetree_ph_motor_parse(struct device_node *pnode, struct ph_motor_data_t *pmotor_data)
+{
+	int ret = 0;
+	struct device_node * pmotor_dev;
+	const char * pname;
+	unsigned int data;
+	ret = of_property_read_string(pnode, "motor_name", &pname);
+	if(ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	strcpy(pmotor_data->motor_name, pname);
+	ret = of_property_read_u32(pnode,"motor_mask",&data);
+	if (ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	pmotor_data->motor_mask = data;
+	ret = of_property_read_u32(pnode,"motor_dev",&data);
+	if (ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	pmotor_dev = of_find_node_by_phandle(data);
+	pmotor_data->pdcmotor = of_node_to_dcmotor(pmotor_dev);
+	if (pmotor_data->pdcmotor == ERR_PTR(-EPROBE_DEFER))
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return -1;
+	}
+	return 0;
+}
+
+static int tp_engine_devicetree_ribbon_motor_parse(struct device_node *pnode, struct ribbon_motor_data_t *pmotor_data)
+{
+	int ret = 0;
+	struct device_node * pmotor_dev;
+	const char * pname;
+	unsigned int data;
+	ret = of_property_read_string(pnode, "motor_name", &pname);
+	if(ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	strcpy(pmotor_data->motor_name, pname);
+	ret = of_property_read_u32(pnode,"motor_mask",&data);
+	if (ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	pmotor_data->motor_mask = data;
+	ret = of_property_read_u32(pnode,"motor_dev",&data);
+	if (ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	pmotor_dev = of_find_node_by_phandle(data);
+	pmotor_data->pdcmotor = of_node_to_dcmotor(pmotor_dev);
+	if (pmotor_data->pdcmotor == ERR_PTR(-EPROBE_DEFER))
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return -1;
+	}
+	return 0;
 }
 
 /* 从设备树获取设备并关联到数据结构 */
@@ -238,7 +261,7 @@ static int tp_engine_devicetree_parse(struct device * pdev, struct tp_engine_t *
 {
 	struct device_node *node, *psub_node;
 	int ret = 0;
-	unsigned int data[8];
+	unsigned int data[12];
 	const char *pname;
 	
 	printk(KERN_DEBUG "tp_engine device tree parse.\n");
@@ -256,35 +279,44 @@ static int tp_engine_devicetree_parse(struct device * pdev, struct tp_engine_t *
 	ret = of_property_read_string(node, "tp_engine_name", &pname);
 	strcpy(ptp_engine->tp_engine_name, pname);
 	printk(KERN_DEBUG "tp_engine_name = %s, ret = %d\n", ptp_engine->tp_engine_name, ret);
-	//读取各个组件数量与设备，申请空间，本项目中有打印头，热敏电阻，电机，传感器
+	//读取各个组件数量与设备，申请空间，本项目中有打印头，热敏电阻，走纸电机，打印头电机，走碳带电机，传感器
 	if(!of_find_property(node, "tp_engine_component", NULL));
 	{
 		dev_warn(pdev, "Found tp_engine_component without tp_engine_component\n");
 		return (-EINVAL);
 	}
 	of_property_read_u32_array(node, "tp_engine_component", data, ARRAY_SIZE(data));
-	ptp_engine->ph_num = data[1];
-	ptp_engine->pph_data = devm_kzalloc(pdev, sizeof(struct ph_data_t) * ptp_engine->ph_num, GFP_KERNEL);
+	ptp_engine->pph_data = devm_kzalloc(pdev, sizeof(struct ph_data_t), GFP_KERNEL);
 	if(ptp_engine->pph_data == NULL)
 	{
 		printk(KERN_ERR "ph_data devm_kzalloc error!\n");
 		return -ENOMEM;
 	}
-	ptp_engine->ph_resistor_num = data[3];
-	ptp_engine->pph_resistor_data = devm_kzalloc(pdev, sizeof(struct ph_resistor_data_t) * ptp_engine->ph_resistor_num, GFP_KERNEL);
+	ptp_engine->pph_resistor_data = devm_kzalloc(pdev, sizeof(struct ph_resistor_data_t), GFP_KERNEL);
 	if(ptp_engine->pph_resistor_data == NULL)
 	{
 		printk(KERN_ERR "pph_resistor_data devm_kzalloc error!\n");
 		return -ENOMEM;
 	}
-	ptp_engine->motor_num = data[5];
-	ptp_engine->pmotor_data = devm_kzalloc(pdev, sizeof(struct motor_data_t) * ptp_engine->motor_num, GFP_KERNEL);
-	if(ptp_engine->pmotor_data == NULL)
+	ptp_engine->ppap_motor_data = devm_kzalloc(pdev, sizeof(struct pap_motor_data_t), GFP_KERNEL);
+	if(ptp_engine->ppap_motor_data == NULL)
 	{
 		printk(KERN_ERR "pmotor_data devm_kzalloc error!\n");
 		return -ENOMEM;
 	}
-	ptp_engine->sensor_num = data[7];
+	ptp_engine->pph_motor_data = devm_kzalloc(pdev, sizeof(struct ph_motor_data_t), GFP_KERNEL);
+	if(ptp_engine->pph_motor_data == NULL)
+	{
+		printk(KERN_ERR "pmotor_data devm_kzalloc error!\n");
+		return -ENOMEM;
+	}
+	ptp_engine->pribbon_motor_data = devm_kzalloc(pdev, sizeof(struct ribbon_motor_data_t), GFP_KERNEL);
+	if(ptp_engine->pribbon_motor_data == NULL)
+	{
+		printk(KERN_ERR "pmotor_data devm_kzalloc error!\n");
+		return -ENOMEM;
+	}
+	ptp_engine->sensor_num = data[11];
 	ptp_engine->psensor_data = devm_kzalloc(pdev, sizeof(struct sensor_data_t) * ptp_engine->sensor_num, GFP_KERNEL);
 	if(ptp_engine->psensor_data == NULL)
 	{
@@ -293,24 +325,36 @@ static int tp_engine_devicetree_parse(struct device * pdev, struct tp_engine_t *
 	}
 	//关联组件设备
 	psub_node = of_find_node_by_phandle(data[0]);
-	ret = tp_engine_devicetree_ph_parse(psub_node, ptp_engine->pph_data, ptp_engine->ph_num);
+	ret = tp_engine_devicetree_ph_parse(psub_node, ptp_engine->pph_data);
 	if (ret)
 	{
 		return ret;
 	}
 	psub_node = of_find_node_by_phandle(data[2]);
-	ret = tp_engine_devicetree_ph_resistor_parse(psub_node, ptp_engine->pph_resistor_data, ptp_engine->ph_resistor_num);
+	ret = tp_engine_devicetree_ph_resistor_parse(psub_node, ptp_engine->pph_resistor_data);
 	if (ret)
 	{
 		return ret;
 	}
 	psub_node = of_find_node_by_phandle(data[4]);
-	ret = tp_engine_devicetree_motor_parse(psub_node, ptp_engine->pmotor_data, ptp_engine->motor_num);
+	ret = tp_engine_devicetree_pap_motor_parse(psub_node, ptp_engine->ppap_motor_data);
 	if (ret)
 	{
 		return ret;
-	}
+        }
 	psub_node = of_find_node_by_phandle(data[6]);
+	ret = tp_engine_devicetree_ph_motor_parse(psub_node, ptp_engine->pph_motor_data);
+	if (ret)
+	{
+		return ret;
+        }
+	psub_node = of_find_node_by_phandle(data[8]);
+	ret = tp_engine_devicetree_ribbon_motor_parse(psub_node, ptp_engine->pribbon_motor_data);
+	if (ret)
+	{
+		return ret;
+        }
+	psub_node = of_find_node_by_phandle(data[10]);
 	ret = tp_engine_devicetree_sensor_parse(psub_node, ptp_engine->psensor_data, ptp_engine->sensor_num);
 	if (ret)
 	{
@@ -354,11 +398,9 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 	cmd = ioctrl_cmd & 0xFF;
 	switch(cmd)
 	{
-		case TP_ENG_IOCTL_PH_UP:
+		case TP_ENG_IOCTL_RESET:
 			break;
-		case TP_ENG_IOCTL_PH_DOWN:
-			break;
-		case TP_ENG_IOCTL_PH_RST:
+		case TP_ENG_IOCTL_PH_UP_DOWN:
 			break;
 		case TP_ENG_IOCTL_PRINT:
 			break;
@@ -391,7 +433,6 @@ static struct file_operations tp_engine_fops =
 int tp_engine_probe(struct platform_device * pdev)
 {
 	int ret = 0;
-	dev_t dev_no;
 	struct tp_engine_dev_t * ptp_engine_dev;
 	
 	ptp_engine_dev = devm_kzalloc(&pdev->dev, sizeof(struct tp_engine_dev_t), GFP_KERNEL);
@@ -400,17 +441,17 @@ int tp_engine_probe(struct platform_device * pdev)
 	ptp_engine_dev->dev = &pdev->dev;
 
 	tp_engine_devicetree_parse(&pdev->dev, &ptp_engine_dev->tp_engine);
-	dev_no = MKDEV(tp_engine_dev_major, TP_ENGINE_DEV_INDEX);
+	ptp_engine_dev->dev_no = MKDEV(tp_engine_dev_major, TP_ENGINE_DEV_INDEX);
 	if(tp_engine_dev_major)
 	{
-		ret = register_chrdev_region(dev_no, 1, ptp_engine_dev->tp_engine.tp_engine_name);
+		ret = register_chrdev_region(ptp_engine_dev->dev_no, 1, ptp_engine_dev->tp_engine.tp_engine_name);
 	}
 	else
 	{
-		ret = alloc_chrdev_region(&dev_no, 0, 1, ptp_engine_dev->tp_engine.tp_engine_name);
-		tp_engine_dev_major = MAJOR(dev_no);
+		ret = alloc_chrdev_region(&ptp_engine_dev->dev_no, 0, 1, ptp_engine_dev->tp_engine.tp_engine_name);
+		tp_engine_dev_major = MAJOR(ptp_engine_dev->dev_no);
 	}
-	printk(KERN_NOTICE "tp engine dev: major %d, dev_no %d, ret %x", tp_engine_dev_major, dev_no, ret);
+	printk(KERN_NOTICE "tp engine dev: major %d, dev_no %d, ret %x", tp_engine_dev_major, ptp_engine_dev->dev_no, ret);
 	if(ret < 0)
 	{
 		printk(KERN_ERR "ERROR tp_engine register chrdev err = %x", ret);
@@ -419,12 +460,12 @@ int tp_engine_probe(struct platform_device * pdev)
 	cdev_init(&ptp_engine_dev->cdev, &tp_engine_fops);
 	ptp_engine_dev->cdev.owner = THIS_MODULE;
 	
-	ret = cdev_add(&ptp_engine_dev->cdev, dev_no, 1);
+	ret = cdev_add(&ptp_engine_dev->cdev, ptp_engine_dev->dev_no, 1);
 	if(ret)
 	{
 		printk(KERN_NOTICE "Error %d add tp_engine cdev", ret);
 		cdev_del(&ptp_engine_dev->cdev);
-		unregister_chrdev_region(dev_no, 1);
+		unregister_chrdev_region(ptp_engine_dev->dev_no, 1);
 		goto __exit__;
 	}
 	
@@ -436,6 +477,11 @@ EXPORT_SYMBOL_GPL(tp_engine_probe);
 int tp_engine_remove(struct platform_device *pdev)
 {
 	int ret = 0;
+	struct tp_engine_dev_t *ptp_engine_dev = platform_get_drvdata(pdev);
+
+	printk(KERN_DEBUG "tp_engine Driver - exit\n");
+	cdev_del(&ptp_engine_dev->cdev);
+	unregister_chrdev_region(ptp_engine_dev->dev_no, 1);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(tp_engine_remove);
