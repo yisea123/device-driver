@@ -5,8 +5,9 @@ PWD := $(shell pwd)
 
 ifeq ($(machine),mx6q_voucher_scanner)
 	obj-m := dcmotor.o steppermotor.o fpga_motor.o fpga_dcmotor.o fpga_stepmotor.o sysfs_motor.o
-endif
-ifeq ($(machine),mx6ul_voucher_dispenser)
+else ifeq ($(machine),mx6ul_voucher_dispenser)
+	obj-m := dcmotor.o gpio_dcmotor.o pwm-gwi.o steppermotor.o pwm_stepmotor.o sysfs_motor.o
+else
 	obj-m := dcmotor.o gpio_dcmotor.o pwm-gwi.o steppermotor.o pwm_stepmotor.o sysfs_motor.o
 endif
 

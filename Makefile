@@ -8,6 +8,8 @@ default:
 	make -C mechanism
 	make -C usbdrv
 	make -C upgrade
+	make -C tp_engine
+	make -C tp_printer_header
 
 clean:
 	make clean -C fpga
@@ -17,3 +19,5 @@ clean:
 	make clean -C mechanism
 	make clean -C usbdrv
 	make clean -C upgrade
+	make clean -C tp_engine
+	make clean -C tp_printer_header

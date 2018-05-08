@@ -31,6 +31,7 @@ struct pap_motor_data_t
 	
 	int err;					//错误码
 	stepmotor_callback_fun callback_complete;	//动作结束时回调函数
+	struct callback_data complete_callback_data;
 	stepmotor_callback_fun callback_per_step;	//每步的回调函数
 };
 
