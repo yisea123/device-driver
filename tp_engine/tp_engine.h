@@ -11,16 +11,24 @@
 
 #define TP_ENGINE_NAME_MAX_SIZE		32
 
+#define TP_ENG_IOC_MAGIC        0xef
+
+#ifdef	__KERNEL__
+#define TP_ENG_CTRL_CMD	(0)
+#else
+#define	TP_ENG_CTRL_CMD		_IO(TP_ENG_IOC_MAGIC , 0 )
+#endif
+
 /* ioctl command define */
-#define TP_ENG_IOCTL_RESET		1	//复位
-#define TP_ENG_IOCTL_PH_UP_DOWN		2	//打印头压下
-#define TP_ENG_IOCTL_PH_RST		3	//打印头复位
-#define TP_ENG_IOCTL_PRINT		4	//打印数据
-#define TP_ENG_IOCTL_PAP_IN		5	//进纸
-#define TP_ENG_IOCTL_PAP_OUT		6	//出纸
-#define TP_ENG_IOCTL_PAP_MOVE		7	//走纸
-#define TP_ENG_IOCTL_RIBBON_RUN		8	//走碳带
-#define TP_ENG_IOCTL_SENSOR_ST		9	//查询传感器状态
+#define TP_ENG_IOCTL_RESET		(TP_ENG_CTRL_CMD+1)	//复位
+#define TP_ENG_IOCTL_PH_UP_DOWN		(TP_ENG_CTRL_CMD+2)	//打印头压下
+#define TP_ENG_IOCTL_PH_RST		(TP_ENG_CTRL_CMD+3)	//打印头复位
+#define TP_ENG_IOCTL_PRINT		(TP_ENG_CTRL_CMD+4)	//打印数据
+#define TP_ENG_IOCTL_PAP_IN		(TP_ENG_CTRL_CMD+5)	//进纸
+#define TP_ENG_IOCTL_PAP_OUT		(TP_ENG_CTRL_CMD+6)	//出纸
+#define TP_ENG_IOCTL_PAP_MOVE		(TP_ENG_CTRL_CMD+7)	//走纸
+#define TP_ENG_IOCTL_RIBBON_RUN		(TP_ENG_CTRL_CMD+8)	//走碳带
+#define TP_ENG_IOCTL_SENSOR_ST		(TP_ENG_CTRL_CMD+9)	//查询传感器状态
 
 typedef enum
 {

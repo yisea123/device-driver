@@ -33,4 +33,9 @@ struct ph_motor_data_t
 	dcmotor_callback_fun callback_complete;		//动作结束时回调函数
 };
 
+int tp_eng_ph_motor_config(struct ph_motor_data_t * pph_motor_data, motion_dir dir, unsigned int stop_in_ms);
+int tp_eng_ph_motor_start(struct ph_motor_data_t * pph_motor_data);
+int tp_eng_ph_motor_wait_stoped(struct ph_motor_data_t * pph_motor_data);
+void tp_eng_ph_motor_stop(struct ph_motor_data_t * pph_motor_data);
+
 #endif

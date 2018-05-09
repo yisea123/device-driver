@@ -278,55 +278,55 @@ static int tp_engine_devicetree_parse(struct device * pdev, struct tp_engine_t *
 	}
 	if(!of_find_property(node, "tp_engine_name", NULL))
 	{
-		dev_warn(pdev, "Found engine without tp_engine_name");
+		dev_err(pdev, "Found engine without tp_engine_name");
 		return (-EINVAL);
 	}
 	memset(ptp_engine->tp_engine_name, 0, TP_ENGINE_NAME_MAX_SIZE);
 	ret = of_property_read_string(node, "tp_engine_name", &pname);
 	strcpy(ptp_engine->tp_engine_name, pname);
-	printk(KERN_DEBUG "tp_engine_name = %s, ret = %d\n", ptp_engine->tp_engine_name, ret);
+	printk("tp_engine_name = %s, ret = %d\n", ptp_engine->tp_engine_name, ret);
 	//读取各个组件数量与设备，申请空间，本项目中有打印头，热敏电阻，走纸电机，打印头电机，走碳带电机，传感器
-	if(!of_find_property(node, "tp_engine_component", NULL));
+	if(!of_find_property(node, "tp_engine_component", NULL))
 	{
-		dev_warn(pdev, "Found tp_engine_component without tp_engine_component\n");
+		dev_err(pdev, "ERROR!!! Found tp_engine_component without tp_engine_component\n");
 		return (-EINVAL);
 	}
 	of_property_read_u32_array(node, "tp_engine_component", data, ARRAY_SIZE(data));
 	ptp_engine->pph_data = devm_kzalloc(pdev, sizeof(struct ph_data_t), GFP_KERNEL);
 	if(ptp_engine->pph_data == NULL)
 	{
-		printk(KERN_ERR "ph_data devm_kzalloc error!\n");
+		printk(KERN_ERR "ERROR!!! ph_data devm_kzalloc error!\n");
 		return -ENOMEM;
 	}
 	ptp_engine->pph_resistor_data = devm_kzalloc(pdev, sizeof(struct ph_resistor_data_t), GFP_KERNEL);
 	if(ptp_engine->pph_resistor_data == NULL)
 	{
-		printk(KERN_ERR "pph_resistor_data devm_kzalloc error!\n");
+		printk(KERN_ERR "ERROR!!! pph_resistor_data devm_kzalloc error!\n");
 		return -ENOMEM;
 	}
 	ptp_engine->ppap_motor_data = devm_kzalloc(pdev, sizeof(struct pap_motor_data_t), GFP_KERNEL);
 	if(ptp_engine->ppap_motor_data == NULL)
 	{
-		printk(KERN_ERR "pmotor_data devm_kzalloc error!\n");
+		printk(KERN_ERR "ERROR!!! pmotor_data devm_kzalloc error!\n");
 		return -ENOMEM;
 	}
 	ptp_engine->pph_motor_data = devm_kzalloc(pdev, sizeof(struct ph_motor_data_t), GFP_KERNEL);
 	if(ptp_engine->pph_motor_data == NULL)
 	{
-		printk(KERN_ERR "pmotor_data devm_kzalloc error!\n");
+		printk(KERN_ERR "ERROR!!! pmotor_data devm_kzalloc error!\n");
 		return -ENOMEM;
 	}
 	ptp_engine->pribbon_motor_data = devm_kzalloc(pdev, sizeof(struct ribbon_motor_data_t), GFP_KERNEL);
 	if(ptp_engine->pribbon_motor_data == NULL)
 	{
-		printk(KERN_ERR "pmotor_data devm_kzalloc error!\n");
+		printk(KERN_ERR "ERROR!!! pmotor_data devm_kzalloc error!\n");
 		return -ENOMEM;
 	}
 	ptp_engine->sensor_num = data[11];
 	ptp_engine->psensor_data = devm_kzalloc(pdev, sizeof(struct sensor_data_t) * ptp_engine->sensor_num, GFP_KERNEL);
 	if(ptp_engine->psensor_data == NULL)
 	{
-		printk(KERN_ERR "psensor_data devm_kzalloc error!\n");
+		printk(KERN_ERR "ERROR!!! psensor_data devm_kzalloc error!\n");
 		return -ENOMEM;
 	}
 	//关联组件设备
@@ -396,18 +396,41 @@ EXPORT_SYMBOL_GPL(tp_engine_close);
 
 static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigned long arg)
 {
-	//void __user *argp = (void __user *)arg;
+	void __user *argp = (void __user *)arg;
 	int ret = 0;
 	unsigned int cmd;
-	//struct tp_engine_dev_t *ptp_eng = (struct tp_engine_dev_t *)(filep->private_data);
+	struct tp_engine_dev_t *ptp_eng_dev = (struct tp_engine_dev_t *)(filep->private_data);
 	
 	cmd = ioctrl_cmd & 0xFF;
+
+	printk("tp_engine_ioctl ioctrl_cmd = %x.\n", ioctrl_cmd);
 	switch(cmd)
 	{
 		case TP_ENG_IOCTL_RESET:
 			break;
-		case TP_ENG_IOCTL_PH_UP_DOWN:
-			break;
+	    case TP_ENG_IOCTL_PH_UP_DOWN:
+		    {
+			    struct ph_motor_data_t * pph_motor_data;
+			    unsigned int mode = 1;
+			    pph_motor_data = ptp_eng_dev->tp_engine.pph_motor_data;
+			    if(copy_from_user((void *)(&mode), (void __user *)argp, sizeof(int)))
+			    {
+				    printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+				    ret = -EFAULT;
+				    goto __exit__;
+			    }
+			    printk(KERN_DEBUG "TP_ENG_IOCTL_PH_UP_DOWN mode = 0x%x.\n", (unsigned int)mode);
+			    if (mode)
+			    {
+				    tp_eng_ph_motor_config(pph_motor_data, MOTION_CLOCKWISE, 500);
+				    tp_eng_ph_motor_start(pph_motor_data);
+			    }
+			    else
+			    {
+				    tp_eng_ph_motor_stop(pph_motor_data);
+			    }
+		    }
+		    break;
 		case TP_ENG_IOCTL_PRINT:
 			break;
 		case TP_ENG_IOCTL_PAP_IN:
@@ -442,11 +465,17 @@ int tp_engine_probe(struct platform_device * pdev)
 	struct tp_engine_dev_t * ptp_engine_dev;
 	
 	ptp_engine_dev = devm_kzalloc(&pdev->dev, sizeof(struct tp_engine_dev_t), GFP_KERNEL);
+	printk(KERN_DEBUG "tp_engine_dev addr = %x.\n", (unsigned int)ptp_engine_dev);
 	if(ptp_engine_dev == NULL)
 		return -ENOMEM;
 	ptp_engine_dev->dev = &pdev->dev;
 
-	tp_engine_devicetree_parse(&pdev->dev, &ptp_engine_dev->tp_engine);
+	ret = tp_engine_devicetree_parse(&pdev->dev, &ptp_engine_dev->tp_engine);
+	if (ret)
+	{
+		printk(KERN_ERR "ERROR!!!  tp_engine_devicetree_parse ret = %x.\n", ret);
+		return ret;
+	}
 	ptp_engine_dev->dev_no = MKDEV(tp_engine_dev_major, TP_ENGINE_DEV_INDEX);
 	if(tp_engine_dev_major)
 	{
@@ -457,10 +486,10 @@ int tp_engine_probe(struct platform_device * pdev)
 		ret = alloc_chrdev_region(&ptp_engine_dev->dev_no, 0, 1, ptp_engine_dev->tp_engine.tp_engine_name);
 		tp_engine_dev_major = MAJOR(ptp_engine_dev->dev_no);
 	}
-	printk(KERN_NOTICE "tp engine dev: major %d, dev_no %d, ret %x\n", tp_engine_dev_major, ptp_engine_dev->dev_no, ret);
+	printk(KERN_NOTICE "tp engine dev: major %d, dev_no %x, ret %x\n", tp_engine_dev_major, ptp_engine_dev->dev_no, ret);
 	if(ret < 0)
 	{
-		printk(KERN_ERR "ERROR tp_engine register chrdev ret = %x\n", ret);
+		printk(KERN_ERR "ERROR!!!  tp_engine register chrdev ret = %x\n", ret);
 		goto __exit__;
 	}
 	cdev_init(&ptp_engine_dev->cdev, &tp_engine_fops);
