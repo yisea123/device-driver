@@ -28,6 +28,7 @@
 #include "tp_engine_ribbon_motor.h"
 #include "tp_engine_sensor.h"
 #include "tp_engine.h"
+#include "../tp_printer_header/printer_header_common.h"
 
 #define TP_ENGINE_DEV_MAJOR		0
 #define TP_ENGINE_DEV_INDEX		0
@@ -56,6 +57,7 @@ static int tp_engine_devicetree_ph_parse(struct device_node *pnode, struct ph_da
 {
 	const char * name;
 	unsigned int data;
+	struct device_node * pph_node;
 	int ret = 0;
 	
 	ret = of_property_read_u32(pnode, "ph_dev", &data);
@@ -64,7 +66,14 @@ static int tp_engine_devicetree_ph_parse(struct device_node *pnode, struct ph_da
 		printk(KERN_ERR "ERROR %s %d\n", __FUNCTION__, __LINE__);
 		return ret;
 	}
-	//pph_data->ptp_ph = data;
+	pph_node = of_find_node_by_phandle(data);
+	if (pph_node == NULL)
+	{
+		printk(KERN_ERR "tp_engine_devicetree_ph_parse of_find_node_by_phandle failed.\n");
+		return -1;
+	}
+	pph_data->ptp_ph = of_node_to_ph(pph_node);
+	
 	ret = of_property_read_string(pnode, "ph_name", &name);
 	if(ret)
 	{
@@ -408,7 +417,7 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 	{
 		case TP_ENG_IOCTL_RESET:
 			break;
-	    case TP_ENG_IOCTL_PH_UP_DOWN:
+	        case TP_ENG_IOCTL_PH_UP_DOWN:
 		    {
 			    struct ph_motor_data_t * pph_motor_data;
 			    unsigned int mode = 1;
@@ -422,8 +431,16 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 			    printk(KERN_DEBUG "TP_ENG_IOCTL_PH_UP_DOWN mode = 0x%x.\n", (unsigned int)mode);
 			    if (mode)
 			    {
-				    tp_eng_ph_motor_config(pph_motor_data, MOTION_CLOCKWISE, 500);
-				    tp_eng_ph_motor_start(pph_motor_data);
+				    ret = tp_eng_ph_motor_config(pph_motor_data, MOTION_CLOCKWISE, 500);
+				    if (ret)
+				    {
+					    printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_config.\n");
+				    }
+				    ret = tp_eng_ph_motor_start(pph_motor_data);
+				    if (ret)
+				    {
+					    printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_start.\n");
+				    }
 			    }
 			    else
 			    {
@@ -438,9 +455,71 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 		case TP_ENG_IOCTL_PAP_OUT:
 			break;
 		case TP_ENG_IOCTL_PAP_MOVE:
+			{
+				struct pap_motor_data_t *ppap_motor_data;
+				int argv;
+				int step;
+				motion_dir dir;
+				struct speed_info spd_info;
+				struct callback_data clbk_data;
+				
+				memset(&clbk_data, 0, sizeof(clbk_data));
+				ppap_motor_data = ptp_eng_dev->tp_engine.ppap_motor_data;
+				if(copy_from_user((void *)(&argv), (void __user *)argp, sizeof(int)))
+				{
+				    printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+				    ret = -EFAULT;
+				    goto __exit__;
+				}
+				if (argv >= 0)
+				{
+					step = argv;
+					dir = MOTION_CLOCKWISE;
+				}
+				else
+				{
+					step = -argv;
+					dir = MOTION_COUNTERCLOCKWISE;
+				}
+				spd_info.speed = 800;
+				spd_info.steps = step;
+				spd_info.nextspeed = NULL;
+				tp_eng_pap_motor_config(ppap_motor_data, step, dir, 1, &spd_info,
+							NULL, &clbk_data, NULL, &clbk_data);
+				tp_eng_pap_motor_start(ppap_motor_data);
+			}
 			break;
 		case TP_ENG_IOCTL_RIBBON_RUN:
-			break;
+			{
+			    struct ribbon_motor_data_t * pribbon_motor_data;
+			    unsigned int mode = 1;
+			    pribbon_motor_data = ptp_eng_dev->tp_engine.pribbon_motor_data;
+			    if(copy_from_user((void *)(&mode), (void __user *)argp, sizeof(int)))
+			    {
+				    printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+				    ret = -EFAULT;
+				    goto __exit__;
+			    }
+			    printk(KERN_DEBUG "TP_ENG_IOCTL_PH_UP_DOWN mode = 0x%x.\n", (unsigned int)mode);
+			    if (mode)
+			    {
+				    ret = tp_eng_ribbon_motor_config(pribbon_motor_data, MOTION_CLOCKWISE, 500);
+				    if (ret)
+				    {
+					    printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_config.\n");
+				    }
+				    ret = tp_eng_ribbon_motor_start(pribbon_motor_data);
+				    if (ret)
+				    {
+					    printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_start.\n");
+				    }
+			    }
+			    else
+			    {
+				    tp_eng_ribbon_motor_stop(pribbon_motor_data);
+			    }
+		        }
+		        break;
 		case TP_ENG_IOCTL_SENSOR_ST:
 			break;
 		default:

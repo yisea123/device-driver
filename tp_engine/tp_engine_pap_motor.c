@@ -23,17 +23,17 @@
 int tp_eng_pap_motor_config(struct pap_motor_data_t * ppap_motor_data,
 			    int step, motion_dir dir, int num_speed, struct speed_info *speedinfo, 
 			    stepmotor_callback_fun callback_complete, struct callback_data * pcallbackdata_comp, 
-			    stepmotor_callback_fun callback_per_step, struct callback_data * pcallbackdata_step,
-			    struct callback_data * pdata_callback)
+			    stepmotor_callback_fun callback_per_step, struct callback_data * pcallbackdata_step
+			    )
 {
-	printk(KERN_DEBUG "tp_eng_pap_motor_config. \n");
+	printk(KERN_DEBUG "tp_eng_pap_motor_config.\n");
 	ppap_motor_data->step_conf.dir = dir;
 	ppap_motor_data->step_conf.num_speed = num_speed;
 	ppap_motor_data->step_conf.steps_to_run = step;
 	ppap_motor_data->step_conf.speedinfo = speedinfo;
 	ppap_motor_data->callback_complete = callback_complete;
 	ppap_motor_data->callback_per_step = callback_per_step;
-	memcpy(&ppap_motor_data->complete_callback_data, pdata_callback, sizeof(struct callback_data));
+	memcpy(&ppap_motor_data->complete_callback_data, pcallbackdata_comp, sizeof(struct callback_data));
 	return 0;
 }
 EXPORT_SYMBOL_GPL(tp_eng_pap_motor_config);
@@ -42,6 +42,7 @@ int tp_eng_pap_motor_start(struct pap_motor_data_t * ppap_motor_data)
 {
 	int ret = 0;
 	
+	printk("tp_eng_pap_motor_start.\n");
 	ret = steppermotor_set_config(ppap_motor_data->pstepmotor, &ppap_motor_data->step_conf);
 	if(ret)
 	{

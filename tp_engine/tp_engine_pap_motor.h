@@ -35,4 +35,13 @@ struct pap_motor_data_t
 	stepmotor_callback_fun callback_per_step;	//每步的回调函数
 };
 
+int tp_eng_pap_motor_config(struct pap_motor_data_t * ppap_motor_data,
+			    int step, motion_dir dir, int num_speed, struct speed_info *speedinfo, 
+			    stepmotor_callback_fun callback_complete, struct callback_data * pcallbackdata_comp, 
+			    stepmotor_callback_fun callback_per_step, struct callback_data * pcallbackdata_step
+			    );
+int tp_eng_pap_motor_start(struct pap_motor_data_t * ppap_motor_data);
+void tp_eng_pap_motor_stop(struct pap_motor_data_t * ppap_motor_data);
+int tp_eng_pap_motor_wait_stop(struct pap_motor_data_t * ppap_motor_data);
+
 #endif

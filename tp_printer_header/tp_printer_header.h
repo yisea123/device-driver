@@ -27,24 +27,26 @@ struct tp_ph_period_config_t
 
 struct tp_ph_config_t
 {
-	struct tp_ph_period_config_t period_config;
-	unsigned short dots_in_a_line;		//how many dots in a line in printer header
-	unsigned char * buffer;
-	unsigned int data_size;
-};
-
-struct tp_ph_ops_t
-{
-	int (*config)(struct device * dev, struct tp_ph_period_config_t * config);
-	int (*write_data)(struct device * dev, struct tp_ph_period_config_t * config);
-	int (*driver_out)(struct device * dev, struct tp_ph_period_config_t * config);
+	unsigned int time_of_heating_us;	//打印头加热时间
+	unsigned short dots_in_a_line;		//打印头宽度，点数
+	struct tp_ph_period_config_t period_config;	//打印时间周期控制，打印头要求各步骤时间
 };
 
 struct tp_ph_t
 {
 	struct device * dev;
+	struct list_head list;
 	struct tp_ph_config_t config_data;
 	const struct tp_ph_ops_t * ops;
+
+	unsigned char * buffer;			//打印数据存放缓冲区
+	unsigned int data_size;			//打印数据长度
+};
+
+struct tp_ph_ops_t
+{
+	int (*config)(struct tp_ph_t * ptp_ph, struct tp_ph_config_t * pconfig);
+	int (*write_data)(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, unsigned int data_size);
 };
 
 #endif

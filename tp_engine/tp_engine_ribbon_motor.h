@@ -33,4 +33,11 @@ struct ribbon_motor_data_t
 	dcmotor_callback_fun callback_complete;		//动作结束时回调函数
 };
 
+
+void tp_eng_ribbon_motor_stop(struct ribbon_motor_data_t * pribbon_motor_data);
+int tp_eng_ribbon_motor_config(struct ribbon_motor_data_t * pribbon_motor_data, motion_dir dir, unsigned int stop_in_ms);
+int tp_eng_ribbon_motor_start(struct ribbon_motor_data_t * pribbon_motor_data);
+int tp_eng_ribbon_motor_wait_stoped(struct ribbon_motor_data_t * pribbon_motor_data);
+
+
 #endif
