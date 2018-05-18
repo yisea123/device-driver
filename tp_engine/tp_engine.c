@@ -520,9 +520,91 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 			    }
 		        }
 		        break;
+
 		case TP_ENG_IOCTL_SENSOR_ST:
+			{
+			unsigned int status;
+			ret = tp_engine_get_sensor_status(&ptp_eng_dev->tp_engine, &status);
+			printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_SENSOR_ST \n");
+			if (copy_to_user((void __user *)argp, &status,sizeof(int)))
+			{
+				printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+				ret = -EFAULT;
+				goto __exit__;
+			}
 			break;
-		default:
+			}
+		case TP_ENG_IOCTL_GET_SEN_VAL:
+			{
+			unsigned int val[20],i;
+			unsigned int size = 0;
+			unsigned int *tmp;
+			ret = tp_engine_sensor_get_refval(&ptp_eng_dev->tp_engine, &val);
+			size = ptp_eng_dev->tp_engine.sensor_num;
+			tmp = &val;
+			for (i = 0; i < size; i++)
+			{
+				printk("TP_ENG_IOCTL_GET_SEN_VAL is %d\n", tmp[i]);
+			}
+			if (copy_to_user((void __user *)argp, tmp, sizeof(int)*size))
+			{
+				printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+				ret = -EFAULT;
+				goto __exit__;
+			}
+				break;
+			}
+		case TP_ENG_IOCTL_SENSOR_ENABLE:
+			{
+			unsigned int enable;
+			if(copy_from_user((void *)(&enable), (void __user *)argp, sizeof(int)))
+			{
+				printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+				ret = -EFAULT;
+				goto __exit__;
+			 }
+			if (enable)
+			{
+				ret = tp_engine_sensor_enable_all(&ptp_eng_dev->tp_engine, enable);
+			}
+			else
+			{
+				ret = tp_engine_sensor_enable_all(&ptp_eng_dev->tp_engine, enable);
+			}
+			}
+			break;
+
+			case TP_ENG_IOCTL_SENSOR_CONFIG:
+			{
+				struct tp_engine_sen_config_t *psen_conf;
+
+				if (copy_from_user(&psen_conf,
+						(void __user *)argp, sizeof(tp_engine_sen_config_t)))
+				{
+					printk(KERN_ERR "TP_ENG_IOCTL_SENSOR_CONFIG: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
+				}
+				ret = tp_engine_sensor_set_config(&(ptp_eng_dev->tp_engine), &psen_conf);
+
+				printk(KERN_ERR "tp_engine_sensor_set_config ret =  %d\n",ret);
+				goto __exit__;
+			}
+				break;
+			case TP_ENG_IOCTL_GET_SENLOGIC_VAL:
+			{
+				printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_GET_SENLOGIC_VAL \n");
+				unsigned int logic_val;
+				ret = tp_engine_sensor_get_logicval(&ptp_eng_dev->tp_engine, &logic_val);
+				if (copy_to_user((void __user *)argp, &logic_val,sizeof(int)))
+				{
+				printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+				ret = -EFAULT;
+				goto __exit__;
+				}
+				break;
+			}
+	default:
 			goto __exit__;
 	}
 __exit__:

@@ -29,6 +29,10 @@
 #define TP_ENG_IOCTL_PAP_MOVE		(TP_ENG_CTRL_CMD+7)	//走纸
 #define TP_ENG_IOCTL_RIBBON_RUN		(TP_ENG_CTRL_CMD+8)	//走碳带
 #define TP_ENG_IOCTL_SENSOR_ST		(TP_ENG_CTRL_CMD+9)	//查询传感器状态
+#define TP_ENG_IOCTL_SENSOR_ENABLE	(TP_ENG_CTRL_CMD+10)	//使能传感器
+#define TP_ENG_IOCTL_GET_SEN_VAL	(TP_ENG_CTRL_CMD+11)	//获得传感器真实值
+#define TP_ENG_IOCTL_SENSOR_CONFIG	(TP_ENG_CTRL_CMD+12)	//配置传感器
+#define TP_ENG_IOCTL_GET_SENLOGIC_VAL	(TP_ENG_CTRL_CMD+13)	//查询传感器逻辑状态
 
 typedef enum
 {
@@ -52,7 +56,9 @@ struct tp_engine_t
 	struct ribbon_motor_data_t * pribbon_motor_data;	//engine中碳带电机
 
 	int sensor_num;					//engine中传感器数量
+	unsigned int sensor_masks;			//engine中多个传感器masks
 	struct sensor_data_t * psensor_data;		//engine中传感器数据指针
+
 };
 
 
