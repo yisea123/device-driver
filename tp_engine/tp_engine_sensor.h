@@ -18,6 +18,21 @@
 #define SEN_MEDIA_IN	0
 #define SEN_MEDIA_OUT	1
 
+/*传感器对应设备的mask */
+#define SEN_ST_PAPAR_IN		0X01
+#define SEN_ST_PAPAR_OUT	0X02
+#define SEN_ST_RIBBON_EXSIT	0X04
+#define SEN_ST_RIBBON_BROKEN	0X08
+#define SEN_ST_PH_UP		0X10
+#define SEN_ST_MAC_CLOSE	0X20
+
+#define SEN_INDEX_PAPAR_IN	0
+#define SEN_INDEX_PAPAR_OUT	1
+#define SEN_INDEX_RIBBON_EXSIT	2
+#define SEN_INDEX_RIBBON_BROKEN	3
+#define SEN_INDEX_PH_UP		4
+#define SEN_INDEX_MAC_CLOSE	5
+
 typedef struct{
 	unsigned int sen_mask;
 	unsigned long pps_ref_value;
