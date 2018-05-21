@@ -7,6 +7,8 @@
 */
 
 #include "tp_engine_ph.h"
+#include "../tp_printer_header/tp_printer_header.h"
+#include "../tp_printer_header/printer_header_common.h"
 
 
 /********************************************************
@@ -19,20 +21,12 @@
  ********************************************************/
 int tp_engine_ph_config(struct ph_data_t * pph_data, struct tp_ph_config_t *pconfig_data)
 {
-	return 0;
+	return ph_config(pph_data->ptp_ph, pconfig_data);
 }
+EXPORT_SYMBOL_GPL(tp_engine_ph_config);
 
-int tp_engine_ph_write_data(struct ph_data_t * pph_data, unsigned char buff, unsigned int size)
+int tp_engine_ph_write_data(struct ph_data_t * pph_data, unsigned char * buff, unsigned int size)
 {
-	return 0;
+	return ph_write_data(pph_data->ptp_ph, buff, size);
 }
-
-int tp_engine_ph_latch(struct ph_data_t * pph_data)
-{
-	return 0;
-}
-
-int tp_engine_ph_stb(struct ph_data_t * pph_data)
-{
-	return 0;
-}
+EXPORT_SYMBOL_GPL(tp_engine_ph_write_data);

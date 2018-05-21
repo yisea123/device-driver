@@ -141,7 +141,7 @@ int tp_engine_sensor_set_callback(struct photosensor *sensor,
 {
 	if (!sensor || !callback)
 		return -EINVAL;
-	sensor->callback = NULL;
+	sensor->callback = callback;
 	sensor->sensor_callback_data = *data;
 	return 0;
 }

@@ -421,6 +421,16 @@ int steppermotor_set_callback(struct steppermotor *motor, void (*callback)(struc
 }
 EXPORT_SYMBOL_GPL(steppermotor_set_callback);
 
+int steppermotor_set_callback_per_step(struct steppermotor *motor, void (*callback)(struct steppermotor *, struct callback_data *),
+			      struct callback_data *data)
+{
+	if (!motor || !callback)
+		return -EINVAL;
+	motor->callback_per_step = callback;
+	motor->callbackdata_per_step = *data;
+	return 0;
+}
+EXPORT_SYMBOL_GPL(steppermotor_set_callback_per_step);
 
 int steppermotor_start(struct steppermotor *motor)
 {
@@ -438,6 +448,13 @@ void steppermotor_stop(struct steppermotor *motor)
 		motor->ops->stop(motor);
 }
 EXPORT_SYMBOL_GPL(steppermotor_stop);
+
+void steppermotor_stop_after_steps(struct steppermotor *motor, unsigned int steps)
+{
+	if (motor)
+		motor->ops->stop_after_steps(motor, steps);
+}
+EXPORT_SYMBOL_GPL(steppermotor_stop_after_steps);
 
 
 void steppermotor_emergencybrake(struct steppermotor *motor)

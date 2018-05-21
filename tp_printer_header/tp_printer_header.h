@@ -9,6 +9,8 @@
 #ifndef __TP_PRINTER_HEADER_H__
 #define __TP_PRINTER_HEADER_H__
 
+#include <linux/device.h>
+
 /* 打印头的各种时间要求 */
 struct tp_ph_period_config_t
 {

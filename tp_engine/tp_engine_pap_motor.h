@@ -14,9 +14,6 @@
 
 #define NAME_MAX_LEN 32
 
-
-typedef void (*stepmotor_callback_fun)(struct steppermotor *, struct callback_data *);
-
 struct pap_motor_data_t
 {
 	unsigned short motor_mask;
@@ -30,18 +27,24 @@ struct pap_motor_data_t
 	struct completion motor_completion;		//电机运动完成，用于等待电机停止
 	
 	int err;					//错误码
-	stepmotor_callback_fun callback_complete;	//动作结束时回调函数
-	struct callback_data complete_callback_data;
-	stepmotor_callback_fun callback_per_step;	//每步的回调函数
+	void (*callback_complete)(struct pap_motor_data_t *, struct callback_data *);//动作结束时回调函数
+	struct callback_data callbackdata_complete;
+	void (*callback_per_step)(struct pap_motor_data_t *, struct callback_data *);//每步的回调函数
+	struct callback_data callbackdata_per_step;
 };
 
+typedef void (*pap_motor_callback_fun)(struct pap_motor_data_t *, struct callback_data *);
+
 int tp_eng_pap_motor_config(struct pap_motor_data_t * ppap_motor_data,
-			    int step, motion_dir dir, int num_speed, struct speed_info *speedinfo, 
-			    stepmotor_callback_fun callback_complete, struct callback_data * pcallbackdata_comp, 
-			    stepmotor_callback_fun callback_per_step, struct callback_data * pcallbackdata_step
+			    int step, motion_dir dir, int num_speed, struct speed_info *speedinfo
 			    );
+int tp_eng_pap_motor_set_callback(struct pap_motor_data_t * ppap_motor_data,
+				  pap_motor_callback_fun callback_complete, struct callback_data * pcallbackdata_comp, 
+				  pap_motor_callback_fun callback_per_step, struct callback_data * pcallbackdata_step
+				  );
 int tp_eng_pap_motor_start(struct pap_motor_data_t * ppap_motor_data);
 void tp_eng_pap_motor_stop(struct pap_motor_data_t * ppap_motor_data);
+void tp_eng_pap_motor_stop_after_steps(struct pap_motor_data_t * ppap_motor_data, unsigned int steps);
 int tp_eng_pap_motor_wait_stop(struct pap_motor_data_t * ppap_motor_data);
 
 #endif

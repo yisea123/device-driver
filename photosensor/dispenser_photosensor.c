@@ -365,7 +365,7 @@ static irqreturn_t sen_isr(int irq, void *dev_id)
 		}
 		ndelay(10);
 	}
-	printk("#####neter sen_isr \n");
+	//printk("#####neter sen_isr \n");
 	if (sensor->callback)
 		sensor->callback(sensor, &sensor->sensor_callback_data);
 
@@ -681,6 +681,7 @@ static int photosensor_probe(struct platform_device *pdev)
 		}
 		sensordev->adc_chan = iiochan;
 	}
+	sensordev->sensor.callback = NULL;
 
 
 

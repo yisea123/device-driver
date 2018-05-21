@@ -60,20 +60,20 @@ EXPORT_SYMBOL_GPL(of_node_to_ph);
 
 int ph_config(struct tp_ph_t * ptp_ph, struct tp_ph_config_t * pconfig)
 {
-	if(ptp_ph)
+	if((!ptp_ph) || (!pconfig))
 	{
-		return ptp_ph->ops->config(ptp_ph, pconfig);
+		return -EINVAL;
 	}
-	return -EINVAL;
+	return ptp_ph->ops->config(ptp_ph, pconfig);
 }
 EXPORT_SYMBOL_GPL(ph_config);
 
 int ph_write_data(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, unsigned int data_size)
 {
-	if(ptp_ph)
+	if((!ptp_ph) || (!pbuffer) || (!data_size))
 	{
-		return ptp_ph->ops->write_data(ptp_ph, pbuffer, data_size);
+		return -EINVAL;
 	}
-	return -EINVAL;
+	return ptp_ph->ops->write_data(ptp_ph, pbuffer, data_size);
 }
 EXPORT_SYMBOL_GPL(ph_write_data);

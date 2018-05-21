@@ -139,6 +139,22 @@ static void pwm_stepmotor_stop(struct steppermotor *motor)
 	}
 }
 
+static void pwm_stepmotor_stop_after_steps(struct steppermotor *motor, unsigned int step)
+{
+	struct motor_dev *motordev = to_motor_dev(motor);
+	struct stepmotor_running_info * p_running_info;
+	unsigned long irq_flags;
+
+	if (!motor)
+		return;
+	p_running_info = &motordev->running_info;
+	motor->status &= ~STEPPERMOTOR_RUNNING;
+	spin_lock_irqsave(&p_running_info->running_info_lock, irq_flags);
+	printk("pwm_stepmotor stop after %d, cur step is %d.\n", step, p_running_info->step_lose);
+	p_running_info->step_left = step;
+	spin_unlock_irqrestore(&p_running_info->running_info_lock, irq_flags);
+}
+
 static void pwm_stepmotor_emergencybrake(struct steppermotor *motor)
 {
 	struct motor_dev *motordev = to_motor_dev(motor);
@@ -335,6 +351,19 @@ static int pwm_stepmotor_set_skew_steps(struct steppermotor *motor, int steps)
 	return 0;
 }
 
+static int pwm_stepmotor_callback_per_step(struct steppermotor *motor)
+{
+	//struct motor_dev *pmotor_dev = to_motor_dev(motor);
+
+	if (motor->callback_per_step == NULL)
+	{
+		return 0;
+	}
+	motor->callback_per_step(motor, &motor->callbackdata_per_step);
+	
+	return 0;
+}
+
 irqreturn_t pwm_stepmotor_isr(int irq, void *dev_id)
 {
 	struct motor_dev *motordev;
@@ -408,6 +437,7 @@ irqreturn_t pwm_stepmotor_isr(int irq, void *dev_id)
 	}
 	step_left_tmp = p_running_info->step_left;
 	spin_unlock_irqrestore(&p_running_info->running_info_lock, irq_flags);
+	pwm_stepmotor_callback_per_step(motor);
 	if (step_left_tmp <= 0)
 	{
 		motor->status &= ~STEPPERMOTOR_RUNNING;
@@ -417,6 +447,7 @@ irqreturn_t pwm_stepmotor_isr(int irq, void *dev_id)
 		spin_lock_irqsave(&p_running_info->running_info_lock, irq_flags);
 		p_running_info->running_st = STEPMOTOR_ST_POSIT;
 		spin_unlock_irqrestore(&p_running_info->running_info_lock, irq_flags);
+		printk("pwm_stepmotor stoped at steps %d.\n", p_running_info->step_lose);
 		if(motor->callback)
 		{
 			motor->status = STEPPERMOTOR_STOPPED_BY_TOTAL_STEPS;
@@ -433,6 +464,7 @@ static struct steppermotor_ops pwm_stepmotor_ops = {
 	.status			= pwm_stepmotor_status,
 	.start			= pwm_stepmotor_start,
 	.stop			= pwm_stepmotor_stop,
+	.stop_after_steps	= pwm_stepmotor_stop_after_steps,
 	.lock			= pwm_stepmotor_lock,
 	.unlock			= pwm_stepmotor_unlock,
 	.emergencybrake		= pwm_stepmotor_emergencybrake,
@@ -559,7 +591,9 @@ static int pwm_stepmotor_probe(struct platform_device *pdev)
 	}
 	pwm_stepmotor_hw_init(motordev);
 	motordev->motor.ops = &pwm_stepmotor_ops;
-	motordev->motor.feature.max_steps = MAXIMUM_STEPS / motordev->stepping; 
+	motordev->motor.feature.max_steps = MAXIMUM_STEPS / motordev->stepping;
+	motordev->motor.callback_per_step = NULL;
+	motordev->motor.callback = NULL;
 	imx_pwm_set_callback(motordev->pwm, pwm_stepmotor_isr, motordev);
 	p_running_info = &motordev->running_info;
 	p_running_info->step_total = 0;

@@ -6,7 +6,7 @@ INCLUDES := $(obj)/../../../../sources/common/include -I $(obj)/../../../../sour
 
 obj-m := tp_engine_drv.o
 tp_engine_drv-objs = tp_engine.o tp_engine_sensor.o tp_engine_ph.o tp_engine_ph_motor.o \
-			tp_engine_ribbon_motor.o tp_engine_pap_motor.o
+			tp_engine_ribbon_motor.o tp_engine_pap_motor.o tp_engine_fun.o
 
 #specify flags for the module compilation
 EXTRA_CFLAGS=-g -O0 -D CONFIG_FPGA_EIM -I $(INCLUDES) -D DEBUG

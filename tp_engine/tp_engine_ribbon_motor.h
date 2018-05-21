@@ -14,8 +14,6 @@
 
 #define NAME_MAX_LEN 32
 
-typedef void (*dcmotor_callback_fun)(struct dcmotor *, struct callback_data *);
-
 struct ribbon_motor_data_t
 {
 	unsigned short motor_mask;
@@ -30,7 +28,7 @@ struct ribbon_motor_data_t
 	struct completion motor_completion;		//电机运动完成，用于等待电机停止
 	
 	int err;					//错误码
-	dcmotor_callback_fun callback_complete;		//动作结束时回调函数
+	void (*callback_complete)(struct dcmotor *, struct callback_data *); //动作结束时回调函数
 };
 
 

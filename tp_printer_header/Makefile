@@ -3,7 +3,9 @@ KDIR := ../../kernel_root
 PWD := $(shell pwd)
 # kernel modules
 
-	obj-m := tp_printer_header.o printer_header_common.o
+obj-m := tp_printer_header_drv.o
+
+tp_printer_header_drv-objs = tp_printer_header.o printer_header_common.o
 
 #specify flags for the module compilation
 EXTRA_CFLAGS=-g -O0 -D CONFIG_FPGA_EIM -I $(INCLUDES) -D DEBUG
