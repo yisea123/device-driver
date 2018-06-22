@@ -4,9 +4,10 @@ PWD := $(shell pwd)
 
 ifeq ($(machine),mx6q_voucher_scanner)
 	obj-m := fpga_adc.o fpga_gpio.o fpga_pwm.o photosensor.o
-endif
-
-ifeq ($(machine),mx6ul_voucher_dispenser)
+else ifeq ($(machine),mx6ul_voucher_dispenser)
+	obj-m := photosensor.o
+	photosensor-objs := dispenser_photosensor.o
+else
 	obj-m := photosensor.o
 	photosensor-objs := dispenser_photosensor.o
 endif
