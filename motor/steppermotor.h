@@ -111,6 +111,8 @@ struct steppermotor {
 	const struct steppermotor_ops *ops;
 	void (*callback)(struct steppermotor *motor, struct callback_data *data);	// callback handling steppermotor events after a motor interrupt
 	struct callback_data callbackdata;
+	void (*callback_per_step)(struct steppermotor *motor, struct callback_data *data);
+	struct callback_data callbackdata_per_step;
 };
 
 
@@ -149,6 +151,7 @@ struct steppermotor_ops {
 
 	int	(*start)(struct steppermotor *motor);
 	void	(*stop)(struct steppermotor *motor);
+	void	(*stop_after_steps)(struct steppermotor *motor, unsigned int stpe);
 	int	(*lock)(struct steppermotor *motor);
 	int	(*unlock)(struct steppermotor *motor);
 	void	(*emergencybrake)(struct steppermotor *motor);
@@ -194,10 +197,13 @@ int steppermotor_set_config(struct steppermotor *motor, const struct steppermoto
 
 int steppermotor_set_callback(struct steppermotor *motor, void (*callback)(struct steppermotor *, struct callback_data *),
 			      struct callback_data *data);
+int steppermotor_set_callback_per_step(struct steppermotor *motor, void (*callback)(struct steppermotor *, struct callback_data *),
+			      struct callback_data *data);
 int steppermotor_status(struct steppermotor *motor);
 
 int steppermotor_start(struct steppermotor *motor);
 void steppermotor_stop(struct steppermotor *motor);
+void steppermotor_stop_after_steps(struct steppermotor *motor, unsigned int steps);
 void steppermotor_emergencybrake(struct steppermotor *motor);
 void steppermotor_lock(struct steppermotor *motor);
 void steppermotor_unlock(struct steppermotor *motor);

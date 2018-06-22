@@ -70,8 +70,10 @@ struct photosensor_feature {
 	int calibrate_mode;			//0——only without paper， 1——only with paper
 	#endif
 };
-
-
+struct sen_callback_data {
+	int data1;
+	int data2;
+};
 /*
  * struct photosensor
  *
@@ -90,6 +92,8 @@ struct photosensor {
 	#endif
         int led_contrl;
         u32 threshold;
+	void (*callback)(struct photosensor *sensor, struct sen_callback_data *data);
+	struct sen_callback_data sensor_callback_data;
 };
 
 

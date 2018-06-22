@@ -3,13 +3,9 @@ KDIR := ../../kernel_root
 PWD := $(shell pwd)
 # kernel modules
 
-ifeq ($(machine),mx6q_voucher_scanner)
-	obj-m := dcmotor.o steppermotor.o fpga_motor.o fpga_dcmotor.o fpga_stepmotor.o sysfs_motor.o
-else ifeq ($(machine),mx6ul_voucher_dispenser)
-	obj-m := dcmotor.o gpio_dcmotor.o pwm-gwi.o steppermotor.o pwm_stepmotor.o sysfs_motor.o
-else
-	obj-m := dcmotor.o pwm_dcmotor.o gpio_dcmotor.o pwm-gwi.o steppermotor.o pwm_stepmotor.o sysfs_motor.o
-endif
+obj-m := tp_printer_header_drv.o
+
+tp_printer_header_drv-objs = tp_printer_header.o printer_header_common.o
 
 #specify flags for the module compilation
 EXTRA_CFLAGS=-g -O0 -D CONFIG_FPGA_EIM -I $(INCLUDES) -D DEBUG

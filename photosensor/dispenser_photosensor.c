@@ -20,7 +20,8 @@
 #include <linux/iio/types.h>
 #include <linux/iio/consumer.h>
 #include <linux/kern_levels.h>
-
+#include <linux/interrupt.h>
+#include <linux/delay.h>
 
 
 static const struct of_device_id photosensor_match[] = {
@@ -271,8 +272,12 @@ int photosensor_get_config(struct photosensor *sensor, struct photosensor_config
 	}
 	else
 	{
-                config->led_brightness = PWM_TO_BRIGHTNESS(pwm_get_duty_cycle(sensordev->led_pwm), pwm_get_period(sensordev->led_pwm)); 
-                config->compare_threshold = sensor->threshold;
+		if (sensordev->sensor.led_contrl == PHOTOSENSOR_LEDCONTRL_PWM)
+		{
+			config->led_brightness = PWM_TO_BRIGHTNESS(pwm_get_duty_cycle(sensordev->led_pwm), pwm_get_period(sensordev->led_pwm)); 
+		}
+		config->compare_threshold = sensor->threshold;
+		
                 #if 0
 		int ret, val, val2;
 		/* get ADC comparision threshold value */
@@ -316,15 +321,17 @@ int photosensor_set_config(struct photosensor *sensor, const struct photosensor_
 	{
 		int ret, val, dir;
 
-        	/* set LED PWM configuration */
-        	period = pwm_get_period(sensordev->led_pwm);
-
-                if (config->led_brightness > MAXIMUM_BRIGHTNESS) {
-                    return 0;
-                }
-                duty = BRIGHTNESS_TO_DUTY(config->led_brightness, period); 
-        	pwm_config(sensordev->led_pwm, duty, period);
-
+		if (sensordev->sensor.led_contrl == PHOTOSENSOR_LEDCONTRL_PWM)
+		{
+			/* set LED PWM configuration */
+			period = pwm_get_period(sensordev->led_pwm);
+	
+			if (config->led_brightness > MAXIMUM_BRIGHTNESS) {
+			    return 0;
+			}
+			duty = BRIGHTNESS_TO_DUTY(config->led_brightness, period); 
+			pwm_config(sensordev->led_pwm, duty, period);
+		}
 		//val = config->compare_threshold;
                 sensor->threshold = config->compare_threshold;
                 /*
@@ -345,7 +352,31 @@ int photosensor_set_config(struct photosensor *sensor, const struct photosensor_
 }
 EXPORT_SYMBOL_GPL(photosensor_set_config);
 #endif
-#if 0  //del by hl 2016.11.2
+
+#if 1   //del by lxh 2018.05.15
+static irqreturn_t sen_isr(int irq, void *dev_id)
+{
+	struct sensor_dev *sensordev;
+	struct photosensor *sensor;
+	unsigned long val;
+	int i;
+	
+	sensordev = (struct sensor_dev *)dev_id;
+	sensor = &sensordev->sensor;
+	val = gpio_get_value(sensordev->input_gpio);
+	for (i = 0; i < 5; i++) {
+		if (val^gpio_get_value(sensordev->input_gpio))
+		{
+			return IRQ_HANDLED;
+		}
+		ndelay(10);
+	}
+	//printk("#####neter sen_isr \n");
+	if (sensor->callback)
+		sensor->callback(sensor, &sensor->sensor_callback_data);
+
+	return IRQ_HANDLED;
+}
 
 #endif
 
@@ -486,6 +517,8 @@ static int photosensor_probe(struct platform_device *pdev)
 	struct sensor_dev *sensordev;
 	struct device_node *node = pdev->dev.of_node;
 	int ret;
+	int interrupt_flag;
+	int sen_irq = 0;
 
 
 #if 1
@@ -562,10 +595,13 @@ static int photosensor_probe(struct platform_device *pdev)
                     printk(KERN_ERR "error = of_property_match_string------ led-contrl");
                     return -EINVAL;
                 }
-                
         }
 #endif
-
+// 从设备树中获得中断开启标志
+	ret = of_property_match_string(node, "interrupt_flag", "1");
+        if (ret >= 0) {
+                interrupt_flag = 1;
+        }
 
         if (sensordev->sensor.led_contrl == PHOTOSENSOR_LEDCONTRL_PWM) {
             int period_ns=0, duty_ns=0;
@@ -626,13 +662,22 @@ static int photosensor_probe(struct platform_device *pdev)
 			printk(KERN_ERR "\n of_get_gpio (1) is not valid %d.\n", gpio);
 			return ret;
 		}
+		sensordev->input_gpio = gpio;
+
 		ret = gpio_request(gpio, "gpio");
 		if (IS_ERR_VALUE(ret)) {
 			printk(KERN_ERR "\n gpio_request (1) failure with code %d.\n", ret);
 			return ret;
 		}
-		sensordev->input_gpio = gpio;
-
+		if ( interrupt_flag ==1)
+		{
+		sen_irq = gpio_to_irq(gpio);
+		if (sen_irq < 0) {
+			printk("gpio_to_irq failed!\n");
+		}
+		
+		ret = request_irq(sen_irq, sen_isr, IRQF_TRIGGER_FALLING|IRQF_TRIGGER_RISING, "sen_irq", sensordev);
+		}
 		of_property_read_u32(node, "bit-index", &sensordev->sensor.dig_bit_index); 
 
 	}
@@ -648,6 +693,7 @@ static int photosensor_probe(struct platform_device *pdev)
 		}
 		sensordev->adc_chan = iiochan;
 	}
+	sensordev->sensor.callback = NULL;
 
 
 
