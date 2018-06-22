@@ -68,12 +68,12 @@ int ph_config(struct tp_ph_t * ptp_ph, struct tp_ph_config_t * pconfig)
 }
 EXPORT_SYMBOL_GPL(ph_config);
 
-int ph_write_data(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, unsigned int data_size)
+int ph_write_line(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, unsigned int data_size)
 {
 	if((!ptp_ph) || (!pbuffer) || (!data_size))
 	{
 		return -EINVAL;
 	}
-	return ptp_ph->ops->write_data(ptp_ph, pbuffer, data_size);
+	return ptp_ph->ops->write_line(ptp_ph, pbuffer, data_size);
 }
-EXPORT_SYMBOL_GPL(ph_write_data);
+EXPORT_SYMBOL_GPL(ph_write_line);

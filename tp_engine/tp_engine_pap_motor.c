@@ -7,9 +7,10 @@
 */
 #include "tp_engine_pap_motor.h"
 #include "tp_engine.h"
+#include "command.h"
 #include "../motor/steppermotor.h"
 
-#define COMPLETION_TIMEOUT(steps)	(steps/2)
+#define COMPLETION_TIMEOUT(steps)	msecs_to_jiffies(steps*5)
 
 extern void tp_eng_pap_motor_complete_callback(struct steppermotor *motor, struct callback_data *data);
 extern void tp_eng_pap_motor_per_step_callback(struct steppermotor *motor, struct callback_data *data);
@@ -74,16 +75,22 @@ int tp_eng_pap_motor_start(struct pap_motor_data_t * ppap_motor_data)
 	{
 		printk(KERN_ERR "tp_eng_pap_motor_start: steppermotor_start error!\n");
 		complete_all(&(ppap_motor_data->motor_completion));
-		return -1;
+		return -RES_PRINTING_UNKOWN_ERROR;
 	}
+	ppap_motor_data->moving_status = 1;
 	return 0;
 }
 EXPORT_SYMBOL_GPL(tp_eng_pap_motor_start);
 
 void tp_eng_pap_motor_stop(struct pap_motor_data_t * ppap_motor_data)
 {
+	if(ppap_motor_data->moving_status == 0)
+	{
+		return;
+	}
 	steppermotor_stop(ppap_motor_data->pstepmotor);
 	complete_all(&(ppap_motor_data->motor_completion));
+	ppap_motor_data->moving_status = 0;
 }
 EXPORT_SYMBOL_GPL(tp_eng_pap_motor_stop);
 
@@ -98,13 +105,18 @@ int tp_eng_pap_motor_wait_stop(struct pap_motor_data_t * ppap_motor_data)
 {
 	int ret = 0;
 
+	if(ppap_motor_data->moving_status == 0)
+	{
+		return 0;
+	}
 	ret = wait_for_completion_timeout(&(ppap_motor_data->motor_completion), COMPLETION_TIMEOUT(ppap_motor_data->step_conf.steps_to_run));
 	if(!ret)
 	{
 		printk(KERN_ERR "tp_eng_stepmotor_wait_stoped timeout!\n");
 		complete_all(&(ppap_motor_data->motor_completion));
 		steppermotor_stop(ppap_motor_data->pstepmotor);
-		return -1;
+		ppap_motor_data->moving_status = 0;
+		return -RES_PRINTING_UNKOWN_ERROR;
 	}
 	return 0;
 }
@@ -115,7 +127,12 @@ void tp_eng_pap_motor_complete_callback(struct steppermotor *motor, struct callb
 	struct pap_motor_data_t * ppap_motor_data;
 
 	ppap_motor_data = (struct pap_motor_data_t *)motor->callbackdata_per_step.data1;
+	if(ppap_motor_data->moving_status == 0)
+	{
+		return;
+	}
 	complete_all(&(ppap_motor_data->motor_completion));
+	ppap_motor_data->moving_status = 0;
 	if(ppap_motor_data->callback_complete == NULL)
 	{
 		return;

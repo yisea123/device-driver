@@ -15,16 +15,9 @@
 struct tp_ph_period_config_t
 {
 	unsigned int clock_freq_hz;
-	unsigned int clock_width;
-	unsigned int data_setup_time;
-	unsigned int data_hold_time;
-	unsigned int data_out_delay_time;
-	unsigned int lat_width;
-	unsigned int lat_hold_time;
-	unsigned int lat_setup_time;
-	unsigned int stb_setup_time;
-	unsigned int drv_out_delay_time;
-	unsigned int total_time;
+	unsigned int delay_after_latch_low;
+	unsigned int delay_after_data_in;
+	unsigned int delay_after_latch_high;
 };
 
 struct tp_ph_config_t
@@ -48,7 +41,7 @@ struct tp_ph_t
 struct tp_ph_ops_t
 {
 	int (*config)(struct tp_ph_t * ptp_ph, struct tp_ph_config_t * pconfig);
-	int (*write_data)(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, unsigned int data_size);
+	int (*write_line)(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, unsigned int data_size);
 };
 
 #endif

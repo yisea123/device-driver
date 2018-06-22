@@ -22,7 +22,6 @@ struct pap_motor_data_t
 	struct steppermotor_config step_conf;		//步进电机配置
 
 	unsigned int moving_status;			//当前运动状态
-	unsigned int stoping_status;			//停止状态
 
 	struct completion motor_completion;		//电机运动完成，用于等待电机停止
 	

@@ -23,7 +23,7 @@
 #define SEN_ST_PAPAR_OUT	0X02
 #define SEN_ST_RIBBON_EXSIT	0X04
 #define SEN_ST_RIBBON_BROKEN	0X08
-#define SEN_ST_PH_UP		0X10
+#define SEN_ST_PH_DOWN		0X10
 #define SEN_ST_MAC_CLOSE	0X20
 
 #define SEN_INDEX_PAPAR_IN	0
@@ -67,6 +67,8 @@ extern int tp_engine_sensor_get_logicval(struct tp_engine_t *ptp_engine, unsigne
 extern int tp_engine_sensor_set_config(struct tp_engine_t *ptp_engine, tp_engine_sen_config_t *p_sen_config );
 
 extern int tp_engine_get_sensor_status(struct tp_engine_t *ptp_engine, unsigned int *pstatus);
+
+extern int tp_engine_get_sensor_statu(struct tp_engine_t *ptp_engine, unsigned int *pstatus, unsigned int mask);
 
 extern int tp_engine_sensor_set_callback(struct photosensor *sensor, 
 				  void (*callback)(struct photosensor *, 

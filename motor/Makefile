@@ -8,7 +8,7 @@ ifeq ($(machine),mx6q_voucher_scanner)
 else ifeq ($(machine),mx6ul_voucher_dispenser)
 	obj-m := dcmotor.o gpio_dcmotor.o pwm-gwi.o steppermotor.o pwm_stepmotor.o sysfs_motor.o
 else
-	obj-m := dcmotor.o gpio_dcmotor.o pwm-gwi.o steppermotor.o pwm_stepmotor.o sysfs_motor.o
+	obj-m := dcmotor.o pwm_dcmotor.o gpio_dcmotor.o pwm-gwi.o steppermotor.o pwm_stepmotor.o sysfs_motor.o
 endif
 
 #specify flags for the module compilation

@@ -23,7 +23,6 @@ struct ribbon_motor_data_t
 	unsigned int stop_in_ms;			//直流电机运动停止时间
 
 	unsigned int moving_status;			//当前运动状态
-	unsigned int stoping_status;			//停止状态
 
 	struct completion motor_completion;		//电机运动完成，用于等待电机停止
 	
@@ -33,7 +32,7 @@ struct ribbon_motor_data_t
 
 
 void tp_eng_ribbon_motor_stop(struct ribbon_motor_data_t * pribbon_motor_data);
-int tp_eng_ribbon_motor_config(struct ribbon_motor_data_t * pribbon_motor_data, motion_dir dir, unsigned int stop_in_ms);
+int tp_eng_ribbon_motor_config(struct ribbon_motor_data_t * pribbon_motor_data, motion_dir dir, unsigned int timeout_ms);
 int tp_eng_ribbon_motor_start(struct ribbon_motor_data_t * pribbon_motor_data);
 int tp_eng_ribbon_motor_wait_stoped(struct ribbon_motor_data_t * pribbon_motor_data);
 

@@ -80,15 +80,19 @@ static void gpio_dcmotor_stop(struct dcmotor *motor)
 	struct motor_dev *motordev = to_dcmoto_dev(motor);
 	if (!motordev)
 		return;//return -EINVAL;
+	if ((motor->status & DCMOTOR_RUNNING) == 0)
+	{
+		return;
+	}
 	gpio_direction_output(motordev->dcmoto_gpio_en1, GPIO_VALUE_HIGH);
 	gpio_direction_output(motordev->dcmoto_gpio_en2, GPIO_VALUE_HIGH);
 	mdelay(500);
 	gpio_direction_output(motordev->dcmoto_gpio_en1, GPIO_VALUE_LOW);
 	gpio_direction_output(motordev->dcmoto_gpio_en2, GPIO_VALUE_LOW);
+	motor->status &= ~DCMOTOR_RUNNING;
 	printk("dcmotor stop.\n");
 	if (motor->callback)
 	{
-		motor->status &= ~DCMOTOR_RUNNING;
 		motor->callback(motor, &(motor->callbackdata));
 	}
 	return;

@@ -30,17 +30,13 @@
 #define GPIO_VALUE_HIGH 		1
 #define GPIO_VALUE_LOW  		0
 
-#define TP_PH_BUFFER_SIZE		(1280/8)
+#define TP_PH_TIME_OF_HEATING_DEF	250		//us,默认加热时间
+#define TP_PH_DOT_IN_LINE		1280		//一行点数
+#define TP_PH_BUFFER_SIZE		(1280/8)	//点数据缓冲区
 #define TP_PH_FREQ_HZ			16000000	//Hz
-#define TP_PH_CLOCK_WIDTH		30		//ns
-#define TP_PH_DATA_SETUP_TIME		10		//ns
-#define TP_PH_DATA_HOLD_TIME		10		//ns
-#define TP_PH_DATA_OUT_DELAY_TIME	90		//ns
-#define TP_PH_LAT_WIDTH			100		//ns
-#define TP_PH_LAT_HOLD_TIME		50		//ns
-#define TP_PH_LAT_SETUP_TIME		200		//ns
-#define TP_PH_STB_SETUP_TIME		200		//ns
-#define TP_PH_DRV_OUT_DELAY_TIME	10		//us
+#define TP_PH_DELAY_AFTER_LATCH_LOW	1		//us
+#define TP_PH_DELAY_AFTER_DATA_IN	1		//us
+#define TP_PH_DELAY_AFTER_LATCH_HIGH	1		//us
 
 #define to_tp_ph_dev(ptp_ph)	container_of(ptp_ph, struct tp_ph_dev_t, tp_ph)
 
@@ -60,35 +56,48 @@ struct tp_ph_dev_t
 	int stb_gpio[STROBE_GPIO_NUM_MAX];
 };
 
-static int tp_ph_write_data(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, unsigned int data_size)
+static int tp_ph_write_line(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, unsigned int data_size)
 {
 	int ret = 0, i = 0;
 	struct tp_ph_dev_t * ptp_ph_dev = to_tp_ph_dev(ptp_ph);
 	struct spi_transfer xfer;
 	struct spi_message msg;
 	struct spi_device *spi;
+	struct tp_ph_period_config_t * pperiod_config;
 	
 	spi = ptp_ph_dev->spi;
-
+	pperiod_config = &ptp_ph->config_data.period_config;
+	//data through, latch low
+	gpio_direction_output(ptp_ph_dev->lat_gpio, GPIO_VALUE_LOW);
+	udelay(pperiod_config->delay_after_latch_low);
 	//data in, spi write
+	if(data_size > (ptp_ph->config_data.dots_in_a_line/8))	//超出打印范围,截断
+	{
+		ptp_ph->data_size = (ptp_ph->config_data.dots_in_a_line/8);
+	}
+	else
+	{
+		ptp_ph->data_size = data_size;
+	}
+	memcpy(ptp_ph->buffer, pbuffer, ptp_ph->data_size);
 	memset(&xfer, 0, sizeof(xfer));
-	xfer.tx_buf = pbuffer;
+	xfer.len = ptp_ph->data_size;//ptp_ph->config_data.dots_in_a_line/8;
+	xfer.speed_hz = ptp_ph->config_data.period_config.clock_freq_hz;
+	xfer.tx_buf = ptp_ph->buffer;
 	xfer.rx_buf = NULL;
-	xfer.len    = data_size;
-	xfer.bits_per_word = 16;
+	xfer.bits_per_word = 8;
 	spi_message_init(&msg);
 	spi_message_add_tail(&xfer, &msg);
 	ret = spi_sync(spi, &msg);
-	//data through, latch low
-	gpio_direction_output(ptp_ph_dev->lat_gpio, GPIO_VALUE_LOW);
-	//data out
-	ndelay(ptp_ph->config_data.period_config.lat_setup_time);
-	ndelay(ptp_ph->config_data.period_config.data_out_delay_time);
+	if(ret)
+	{
+		printk("spi_sync error.\n");
+		return ret;
+	}
+	udelay(pperiod_config->delay_after_data_in);
 	//data hold, latch high
 	gpio_direction_output(ptp_ph_dev->lat_gpio, GPIO_VALUE_HIGH);
-	ndelay(ptp_ph->config_data.period_config.lat_hold_time);
-	//heating, stb high
-	ndelay(ptp_ph->config_data.period_config.stb_setup_time);
+	udelay(pperiod_config->delay_after_latch_high);
 	for(i = 0; i < STROBE_GPIO_NUM_MAX; i++)
 	{
 		if(ptp_ph_dev->stb_gpio != NULL)
@@ -96,7 +105,6 @@ static int tp_ph_write_data(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, un
 			gpio_direction_output(ptp_ph_dev->stb_gpio[i], GPIO_VALUE_HIGH);
 		}
 	}
-	udelay(ptp_ph->config_data.period_config.drv_out_delay_time);
 	udelay(ptp_ph->config_data.time_of_heating_us);
 	//cooling, stb low
 	for(i = 0; i < STROBE_GPIO_NUM_MAX; i++)
@@ -106,7 +114,7 @@ static int tp_ph_write_data(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, un
 			gpio_direction_output(ptp_ph_dev->stb_gpio[i], GPIO_VALUE_LOW);
 		}
 	}
-	udelay(ptp_ph->config_data.period_config.drv_out_delay_time);
+
 	return ret;
 }
 
@@ -157,25 +165,31 @@ __exit__:
 static int tp_ph_init(struct tp_ph_dev_t * ptp_ph_dev)
 {
 	int ret = 0;
-	int buf_size;
+	int buf_size, i;
 	struct tp_ph_period_config_t * pperiod_config;
 	
+
 	//申请存放数据缓冲区
-	buf_size = ptp_ph_dev->tp_ph.config_data.dots_in_a_line/8;
+	buf_size = ptp_ph_dev->tp_ph.config_data.dots_in_a_line;
 	ptp_ph_dev->tp_ph.buffer = devm_kzalloc(ptp_ph_dev->tp_ph.dev, buf_size, GFP_KERNEL);
 	ptp_ph_dev->tp_ph.data_size = 0;
 	//init value
+	ptp_ph_dev->tp_ph.config_data.dots_in_a_line = TP_PH_DOT_IN_LINE;
+	ptp_ph_dev->tp_ph.config_data.time_of_heating_us = TP_PH_TIME_OF_HEATING_DEF;
 	pperiod_config = &ptp_ph_dev->tp_ph.config_data.period_config;
 	pperiod_config->clock_freq_hz = TP_PH_FREQ_HZ;
-	pperiod_config->clock_width = TP_PH_CLOCK_WIDTH;
-	pperiod_config->data_hold_time = TP_PH_DATA_HOLD_TIME;
-	pperiod_config->data_setup_time = TP_PH_DATA_SETUP_TIME;
-	pperiod_config->data_out_delay_time = TP_PH_DATA_OUT_DELAY_TIME;
-	pperiod_config->lat_hold_time = TP_PH_LAT_HOLD_TIME;
-	pperiod_config->lat_width = TP_PH_LAT_WIDTH;
-	pperiod_config->lat_setup_time = TP_PH_LAT_SETUP_TIME;
-	pperiod_config->stb_setup_time = TP_PH_STB_SETUP_TIME;
-	pperiod_config->drv_out_delay_time = TP_PH_DRV_OUT_DELAY_TIME;
+	pperiod_config->delay_after_latch_low = TP_PH_DELAY_AFTER_LATCH_LOW;
+	pperiod_config->delay_after_data_in = TP_PH_DELAY_AFTER_DATA_IN;
+	pperiod_config->delay_after_latch_high = TP_PH_DELAY_AFTER_LATCH_HIGH;
+
+	gpio_direction_output(ptp_ph_dev->lat_gpio, GPIO_VALUE_HIGH);
+	for(i = 0; i < STROBE_GPIO_NUM_MAX; i++)
+	{
+		if(ptp_ph_dev->stb_gpio != NULL)
+		{
+			gpio_direction_output(ptp_ph_dev->stb_gpio[i], GPIO_VALUE_LOW);
+		}
+	}
 	
 	return ret;
 }
@@ -183,7 +197,7 @@ static int tp_ph_init(struct tp_ph_dev_t * ptp_ph_dev)
 const struct tp_ph_ops_t tp_ph_ops =
 {
 	.config		= tp_ph_config,
-	.write_data	= tp_ph_write_data,
+	.write_line	= tp_ph_write_line,
 };
 
 static int tp_ph_probe(struct spi_device * spi)
@@ -192,7 +206,7 @@ static int tp_ph_probe(struct spi_device * spi)
 	struct device_node * np = spi->dev.of_node;
 	int ret = 0;
 	unsigned short spi_mode = 0;
-	unsigned int spi_max_speed_hz = 16000000;
+	unsigned int spi_max_speed_hz = TP_PH_FREQ_HZ;
 	printk("tp printer header probe.\n");
 	
 	ret = of_property_read_u16(np, "spi-mode", &spi_mode);
@@ -207,8 +221,8 @@ static int tp_ph_probe(struct spi_device * spi)
 		dev_err(&spi->dev, "Failed to read spi-max-frequency from dts\n");
 		return ret;
 	}
-	spi->mode = spi_mode;
-	spi->bits_per_word = 16;
+	spi->mode = SPI_MODE_3;
+	spi->bits_per_word = 8;
 	spi->max_speed_hz = spi_max_speed_hz;
 	ret = spi_setup(spi);
 	if (ret < 0)

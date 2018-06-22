@@ -28,24 +28,12 @@
 #include "tp_engine_ribbon_motor.h"
 #include "tp_engine_sensor.h"
 #include "tp_engine.h"
+#include "command.h"
 #include "tp_engine_fun.h"
 #include "../tp_printer_header/printer_header_common.h"
 
 #define TP_ENGINE_DEV_MAJOR		0
 #define TP_ENGINE_DEV_INDEX		0
-
-//将要打印的bmp数据结构体
-struct tp_engine_bmp_data
-{
-	unsigned char * buff;
-	unsigned int data_size;
-	unsigned int bmp_x_res;		//bmp x resolution
-	unsigned int bmp_y_res;		//bmp y resolution
-
-	unsigned char * p_cur_c;	//当前字符指针
-	unsigned int cur_char_index;	//当前字符所在位置
-	unsigned int left_char_size;	//剩余字符个数
-};
 
 struct tp_engine_dev_t
 {
@@ -106,9 +94,45 @@ static int tp_engine_devicetree_ph_parse(struct device_node *pnode, struct ph_da
 }
 
 /* 从设备树获取设备并关联到数据结构 */
-static int tp_engine_devicetree_ph_resistor_parse(struct device_node *pnode, struct ph_resistor_data_t *ph_resistor_data)
+static int tp_engine_devicetree_ph_resistor_parse(struct device_node *pnode, struct ph_resistor_data_t *pph_resistor_data)
 {
 	int ret = 0;
+	struct device_node *pph_r_dev;
+	const char *p_name;
+	unsigned int data;
+
+	ret = of_property_read_string(pnode, "th_resistor_name", &p_name);
+	if (ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	strcpy(pph_resistor_data->ph_resistor_name, p_name);
+	ret = of_property_read_u32(pnode, "th_resistor_mask", &data);
+	if (ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	pph_resistor_data->ph_resistor_mask = data;
+	ret = of_property_read_u32(pnode, "th_resistor_dev", &data);
+	if (ret)
+	{
+		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
+		return ret;
+	}
+	pph_r_dev = of_find_node_by_phandle(data);
+	if(pph_r_dev==NULL)
+	{
+		printk(KERN_ERR "ERROR in Func %s of_find_node_by_phandle\n", __FUNCTION__);
+		return ret;
+	}
+	pph_resistor_data->ph_r_dev.pphotosensor = of_node_to_photosensor(pph_r_dev);
+	if (pph_resistor_data->ph_r_dev.pphotosensor == ERR_PTR(-EPROBE_DEFER))
+	{
+		printk(KERN_ERR "ERROR in Func %s of_node_to_photosensor\n", __FUNCTION__);
+		return (-EPROBE_DEFER);
+	}
 	return ret;
 }
 
@@ -143,7 +167,7 @@ static int tp_engine_devicetree_pap_motor_parse(struct device_node *pnode, struc
 	if (pmotor_data->pstepmotor == ERR_PTR(-EPROBE_DEFER))
 	{
 		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
-		return -1;
+		return -EPROBE_DEFER;
 	}
 	return 0;
 }
@@ -179,7 +203,7 @@ static int tp_engine_devicetree_ph_motor_parse(struct device_node *pnode, struct
 	if (pmotor_data->pdcmotor == ERR_PTR(-EPROBE_DEFER))
 	{
 		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
-		return -1;
+		return -EPROBE_DEFER;
 	}
 	return 0;
 }
@@ -215,7 +239,7 @@ static int tp_engine_devicetree_ribbon_motor_parse(struct device_node *pnode, st
 	if (pmotor_data->pdcmotor == ERR_PTR(-EPROBE_DEFER))
 	{
 		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
-		return -1;
+		return -EPROBE_DEFER;
 	}
 	return 0;
 }
@@ -426,31 +450,108 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 	
 	cmd = ioctrl_cmd & 0xFF;
 
-	printk("\ntp_engine_ioctl ioctrl_cmd = %x.\n", ioctrl_cmd);
 	switch(cmd)
 	{
 		case TP_ENG_IOCTL_RESET:
 			break;
-	        case TP_ENG_IOCTL_PH_UP_DOWN:
-		    {
-			unsigned int mode = 1;
-			if(copy_from_user((void *)(&mode), (void __user *)argp, sizeof(int)))
+		case TP_ENG_IOCTL_SET_ENG_CONFIG:
 			{
-			    printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
-			    ret = -EFAULT;
-			    goto __exit__;
+				struct tp_engine_config_t config;
+
+				if (copy_from_user(&config,
+						(void __user *)argp, sizeof(struct tp_engine_config_t)))
+				{
+					printk(KERN_ERR "TP_ENG_IOCTL_SENSOR_CONFIG: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
+				}
+				ret = tp_eng_fun_config(&(ptp_eng_dev->tp_engine), &config);
+				if (ret < 0)
+				{
+					ret = -EFAULT;
+					goto __exit__;
+				}
 			}
-			printk(KERN_DEBUG "TP_ENG_IOCTL_PH_UP_DOWN mode = 0x%x.\n", (unsigned int)mode);
-			tp_eng_fun_ph_up(&ptp_eng_dev->tp_engine, mode);
-		    }
-		    break;
+			break;
+		case TP_ENG_IOCTL_SET_PH_CONFIG:
+			{
+				struct tp_ph_config_t config;
+
+				if (copy_from_user(&config,
+						(void __user *)argp, sizeof(struct tp_ph_config_t)))
+				{
+					printk(KERN_ERR "TP_ENG_IOCTL_SENSOR_CONFIG: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
+				}
+				ret = tp_eng_ph_config(ptp_eng_dev->tp_engine.pph_data, &config);
+				if (ret < 0)
+				{
+					ret = -EFAULT;
+					goto __exit__;
+				}
+			}
+			break;
+	        case TP_ENG_IOCTL_PH_UP_DOWN:
+			{
+				unsigned int mode = 1;
+				if(copy_from_user((void *)(&mode), (void __user *)argp, sizeof(int)))
+				{
+				    printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+				    ret = -EFAULT;
+				    goto __exit__;
+				}
+				tp_eng_fun_ph_move(&ptp_eng_dev->tp_engine, mode);
+			}
+			break;
 		case TP_ENG_IOCTL_PRINT:
+			{
+				tp_eng_fun_print(&ptp_eng_dev->tp_engine, argp);
+			}
 			break;
 		case TP_ENG_IOCTL_PAP_IN:
 			tp_eng_fun_pap_in(&ptp_eng_dev->tp_engine);
 			break;
 		case TP_ENG_IOCTL_PAP_OUT:
 			tp_eng_fun_pap_out(&ptp_eng_dev->tp_engine);
+			break;
+		case TP_ENG_IOCTL_GET_PAP_LENGHT:
+			{
+				unsigned int len;
+				ret = tp_engine_get_pap_lenght(&ptp_eng_dev->tp_engine, &len);
+				if (copy_to_user((void __user *)argp, &len,sizeof(int)))
+				{
+					printk(KERN_NOTICE "tp_engine_ioctl TP_ENG_IOCTL_SENSOR_ST: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
+				}
+			}
+			break;
+		case TP_ENG_IOCTL_GET_ENG_CONFIG:
+			{
+				struct tp_engine_config_t eng_config;
+				ret = tp_engine_get_eng_config(&ptp_eng_dev->tp_engine, &eng_config);
+				if (copy_to_user((void __user *)argp, &eng_config,sizeof(eng_config)))
+				{
+					printk(KERN_NOTICE "tp_engine_ioctl TP_ENG_IOCTL_SENSOR_ST: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
+				}
+			}
+			break;
+		case TP_ENG_IOCTL_GET_PH_CONFIG:
+			{
+
+				struct tp_ph_config_t config_data;
+				ret = tp_engine_get_ph_config(&ptp_eng_dev->tp_engine, &config_data);
+				if (copy_to_user((void __user *)argp, &config_data,sizeof(config_data)))
+				{
+					printk(KERN_NOTICE "tp_engine_ioctl TP_ENG_IOCTL_SENSOR_ST: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
+				}
+
+			}
 			break;
 		case TP_ENG_IOCTL_PAP_MOVE:
 			{
@@ -466,9 +567,7 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 			break;
 		case TP_ENG_IOCTL_RIBBON_RUN:
 			{
-			    struct ribbon_motor_data_t * pribbon_motor_data;
 			    unsigned int mode = 1;
-			    pribbon_motor_data = ptp_eng_dev->tp_engine.pribbon_motor_data;
 			    if(copy_from_user((void *)(&mode), (void __user *)argp, sizeof(int)))
 			    {
 				    printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
@@ -476,33 +575,16 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				    goto __exit__;
 			    }
 			    printk(KERN_DEBUG "TP_ENG_IOCTL_PH_UP_DOWN mode = 0x%x.\n", (unsigned int)mode);
-			    if (mode)
-			    {
-				    ret = tp_eng_ribbon_motor_config(pribbon_motor_data, MOTION_CLOCKWISE, 500);
-				    if (ret)
-				    {
-					    printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_config.\n");
-				    }
-				    ret = tp_eng_ribbon_motor_start(pribbon_motor_data);
-				    if (ret)
-				    {
-					    printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_start.\n");
-				    }
-			    }
-			    else
-			    {
-				    tp_eng_ribbon_motor_stop(pribbon_motor_data);
-			    }
+			    tp_eng_fun_ribbon_run(&ptp_eng_dev->tp_engine, mode);
 		        }
 		        break;
 		case TP_ENG_IOCTL_SENSOR_ST:
 			{
 				unsigned int status;
 				ret = tp_engine_get_sensor_status(&ptp_eng_dev->tp_engine, &status);
-				printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_SENSOR_ST \n");
 				if (copy_to_user((void __user *)argp, &status,sizeof(int)))
 				{
-					printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+					printk(KERN_NOTICE "tp_engine_ioctl TP_ENG_IOCTL_SENSOR_ST: copy_from_user fail\n");
 					ret = -EFAULT;
 					goto __exit__;
 				}
@@ -513,6 +595,7 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				unsigned int val[20],i;
 				unsigned int size = 0;
 				unsigned int *tmp;
+				unsigned long resistor_val;
 				ret = tp_engine_sensor_get_refval(&ptp_eng_dev->tp_engine, val);
 				size = ptp_eng_dev->tp_engine.sensor_num;
 				tmp = val;
@@ -523,6 +606,12 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				if (copy_to_user((void __user *)argp, tmp, sizeof(int)*size))
 				{
 					printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
+				}
+				ret = tp_eng_ph_resistor_get_val(ptp_eng_dev->tp_engine.pph_resistor_data, &resistor_val);
+				if (ret < 0)
+				{
 					ret = -EFAULT;
 					goto __exit__;
 				}
@@ -560,18 +649,8 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 					goto __exit__;
 				}
 				ret = tp_engine_sensor_set_config(&(ptp_eng_dev->tp_engine), &sen_conf);
-
-				printk(KERN_ERR "tp_engine_sensor_set_config ret =  %d\n",ret);
-				goto __exit__;
-			}
-			break;
-		case TP_ENG_IOCTL_GET_SENLOGIC_VAL:
-			{
-				unsigned int logic_val;
-				ret = tp_engine_sensor_get_logicval(&ptp_eng_dev->tp_engine, &logic_val);
-				if (copy_to_user((void __user *)argp, &logic_val,sizeof(int)))
+				if (ret < 0)
 				{
-					printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
 					ret = -EFAULT;
 					goto __exit__;
 				}
@@ -584,25 +663,6 @@ __exit__:
 	return ret;
 }
 EXPORT_SYMBOL_GPL(tp_engine_ioctl);
-
-/* tp_engine中断服务程序(步进电机每步中断)*/
-int tp_engine_isr_stepmotor(struct tp_engine_t * ptp_engine)
-{
-	if (ptp_engine->eng_state.pap_motor_state == PAP_MOTOR_STATE_IN)
-	{
-	}
-	else if (ptp_engine->eng_state.pap_motor_state == PAP_MOTOR_STATE_OUT)
-	{
-	}
-	else if (ptp_engine->eng_state.pap_motor_state == PAP_MOTOR_STATE_PRINT)
-	{
-	}
-	else
-	{
-	}
-	return 0;
-}
-EXPORT_SYMBOL_GPL(tp_engine_isr_stepmotor);
 
 /* tp_engine中断服务程序(打印头抬起传感器) */
 int tp_engine_isr_ph_sensor(struct tp_engine_t * ptp_engine)

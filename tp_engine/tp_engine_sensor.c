@@ -13,16 +13,14 @@ int tp_engine_sensor_get_refval(struct tp_engine_t *ptp_engine, unsigned int *va
 	struct sensor_data_t *psensor_data;
 	unsigned int i;
 	int ret=0;
-	unsigned int *tmp;
+	unsigned long *tmp;
 	
-	tmp = val;
-	printk(KERN_ERR , __FUNCTION__, __LINE__);
+	tmp = (unsigned long *)val;
 	psensor_data = ptp_engine->psensor_data;
 	for (i = 0; i < ptp_engine->sensor_num; i++)
 	{
 		ret = photosensor_read_input(psensor_data->sen_dev.pphotosensor, tmp);
-		printk("psensor_data[%d] val[%d] is %d\n",i,i,*tmp);
-
+//		printk("psensor_data[%d] val[%d] is %ld\n",i,i,*tmp);
 		psensor_data++;
 		tmp++;
 	}
@@ -65,7 +63,7 @@ EXPORT_SYMBOL_GPL(tp_engine_sensor_get_logicval);
 int tp_engine_sensor_set_config(struct tp_engine_t *ptp_engine, tp_engine_sen_config_t *p_sen_config )
 {
 	struct photosensor_config config;
-	unsigned int sen_mask, i;
+	unsigned int i;
 	int ret=0;
 	struct sensor_data_t *psensor_data;
 
@@ -117,7 +115,6 @@ EXPORT_SYMBOL_GPL(tp_engine_sensor_enable_all);
 //获取所有传感器的状态
 int tp_engine_get_sensor_status(struct tp_engine_t *ptp_engine, unsigned int *pstatus)
 {
-	unsigned char j;
 	int ret=0;
 	unsigned int status = 0;
 	struct sensor_data_t *psensor_data;
@@ -133,6 +130,39 @@ int tp_engine_get_sensor_status(struct tp_engine_t *ptp_engine, unsigned int *ps
 	return ret;
 }
 EXPORT_SYMBOL_GPL(tp_engine_get_sensor_status);
+
+
+//获取所有传感器的状态
+int tp_engine_get_sensor_statu(struct tp_engine_t *ptp_engine, unsigned int *pstatus, unsigned int mask)
+{
+	int ret=0, i=0 ;
+	struct sensor_data_t *psensor_data;
+	unsigned int val = 0;
+
+	psensor_data = ptp_engine->psensor_data;
+	for (i = 0; i < ptp_engine->sensor_num; i++)
+	{
+		if (psensor_data[i].sen_mask == mask)
+		{
+			ret =  photosensor_status(psensor_data[i].sen_dev.pphotosensor, &val);
+			if (ret < 0)
+			{
+				return ret;
+			}
+			if (val > 0)
+			{
+				psensor_data[i].sen_status = psensor_data[i].sen_mask;
+			}
+			else
+			{
+				psensor_data[i].sen_status = 0;
+			}
+			*pstatus = psensor_data[i].sen_status;
+		}
+	}
+	return ret;
+}
+EXPORT_SYMBOL_GPL(tp_engine_get_sensor_statu);
 
 
 int tp_engine_sensor_set_callback(struct photosensor *sensor, 

@@ -22,9 +22,15 @@ struct ph_resistor_data_t
 {
 	unsigned short ph_resistor_mask;
 	unsigned char ph_resistor_name[NAME_MAX_LEN];
+	union
+	{
+		struct photosensor *pphotosensor;
+		//struct iio_channel *ph_r_chan;
+	}ph_r_dev;
 };
 
-int tp_engine_ph_config(struct ph_data_t * pph_data, struct tp_ph_config_t *pconfig_data);
-int tp_engine_ph_write_data(struct ph_data_t * pph_data, unsigned char * buff, unsigned int size);
+int tp_eng_ph_config(struct ph_data_t * pph_data, struct tp_ph_config_t *pconfig_data);
+int tp_eng_ph_write_line(struct ph_data_t * pph_data, unsigned char * buff, unsigned int size);
+int tp_eng_ph_resistor_get_val(struct ph_resistor_data_t * pph_resistor_data, unsigned long * pval);
 
 #endif
