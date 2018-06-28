@@ -54,6 +54,8 @@ struct tp_ph_dev_t
 	struct spi_device *spi;		//printer header spi for write dot data
 	int lat_gpio;
 	int stb_gpio[STROBE_GPIO_NUM_MAX];
+	int en_24v_gpio;
+	int en_5v_gpio;
 };
 
 static int tp_ph_write_line(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, unsigned int data_size)
@@ -142,6 +144,31 @@ static int tp_ph_gpio_init_from_dts(struct device * dev, struct tp_ph_dev_t * p_
 	if(ret)
 		return ret;
 	
+//	
+	
+	p_tp_ph_dev->en_24v_gpio = of_get_named_gpio(np, "en-24v-gpio", 0);
+	if (!gpio_is_valid(p_tp_ph_dev->en_24v_gpio)) 
+	{
+		dev_err(dev, "no en-24v-gpio pin available in dts.\n");
+		goto __exit__;
+	}
+	ret = gpio_request(p_tp_ph_dev->en_24v_gpio, NULL);
+	if(ret)
+		return ret;
+
+	
+	p_tp_ph_dev->en_5v_gpio = of_get_named_gpio(np, "en-5v-gpio", 0);
+	if (!gpio_is_valid(p_tp_ph_dev->en_5v_gpio)) 
+	{
+		dev_err(dev, "no en-5v-gpio pin available in dts.\n");
+		goto __exit__;
+	}
+	ret = gpio_request(p_tp_ph_dev->en_5v_gpio, NULL);
+	if(ret)
+		return ret;
+
+	
+//
 	for(i = 0; i < STROBE_GPIO_NUM_MAX; i++)
 	{
 		p_tp_ph_dev->stb_gpio[i] = of_get_named_gpio(np, str_stb[i], 0);
@@ -157,6 +184,8 @@ static int tp_ph_gpio_init_from_dts(struct device * dev, struct tp_ph_dev_t * p_
 			return ret;
 		}
 	}
+
+
 
 __exit__:
 	return 0;
@@ -183,6 +212,9 @@ static int tp_ph_init(struct tp_ph_dev_t * ptp_ph_dev)
 	pperiod_config->delay_after_latch_high = TP_PH_DELAY_AFTER_LATCH_HIGH;
 
 	gpio_direction_output(ptp_ph_dev->lat_gpio, GPIO_VALUE_HIGH);
+	gpio_direction_output(ptp_ph_dev->en_24v_gpio, GPIO_VALUE_HIGH);
+	gpio_direction_output(ptp_ph_dev->en_5v_gpio, GPIO_VALUE_HIGH);
+	
 	for(i = 0; i < STROBE_GPIO_NUM_MAX; i++)
 	{
 		if(ptp_ph_dev->stb_gpio != NULL)

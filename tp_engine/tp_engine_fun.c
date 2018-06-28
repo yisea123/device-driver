@@ -41,7 +41,7 @@
 #define SPEED_PAP_OUT	SPEED_PAP_IN
 #define SPEED_PRINTING	1200
 
-#define STEP_PAP_IN	2000
+#define STEP_PAP_IN	4000
 #define STEP_PAP_OUT	4000
 
 #define PH_MOTOR_TIME_OUT	1000
@@ -392,6 +392,18 @@ int tp_eng_fun_ph_move(struct tp_engine_t * ptp_eng, unsigned char mode)
 			{
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_wait_stoped.\n");
 			}
+			ret = tp_eng_ph_motor_config(pph_motor_data, MOTION_CLOCKWISE, PH_MOTOR_TIME_OUT);
+			if (ret)
+			{
+				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_config.\n");
+			}
+			ret = tp_eng_ph_motor_start(pph_motor_data);
+			if (ret)
+			{
+				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_start.\n");
+			}
+			mdelay(15);
+			tp_eng_ph_motor_stop(pph_motor_data);
 			tp_eng_fun_sensor_update(ptp_eng);
 			if (ptp_eng->tp_eng_sen_st.ph_down == 0)	//压下失败
 			{
@@ -510,7 +522,7 @@ int tp_eng_fun_sensor_update(struct tp_engine_t * ptp_eng)
 	{
 		ptp_eng->tp_eng_sen_st.ribbon_exsit = 0;
 	}
-	if (sen_st & SEN_ST_RIBBON_BROKEN)
+/*	if (sen_st & SEN_ST_RIBBON_BROKEN)
 	{
 		ptp_eng->tp_eng_sen_st.ribbon_broken = 1;
 	}
@@ -518,6 +530,7 @@ int tp_eng_fun_sensor_update(struct tp_engine_t * ptp_eng)
 	{
 		ptp_eng->tp_eng_sen_st.ribbon_broken = 0;
 	}
+*/
 	if (sen_st & SEN_ST_PH_DOWN)
 	{
 		ptp_eng->tp_eng_sen_st.ph_down = 1;
@@ -584,7 +597,7 @@ static void tp_eng_fun_update_sensor_wq(struct work_struct * work)
 		}
 	}
 
-	rs = tp_engine_get_sensor_statu(ptp_eng, &st, SEN_ST_RIBBON_BROKEN);
+/*	rs = tp_engine_get_sensor_statu(ptp_eng, &st, SEN_ST_RIBBON_BROKEN);
 	if (rs)
 	{
 		printk("tp_engine_get_sensor_statu error.\n");
@@ -600,6 +613,7 @@ static void tp_eng_fun_update_sensor_wq(struct work_struct * work)
 			ptp_eng->tp_eng_sen_st.ribbon_broken = 0;
 		}
 	}
+*/
 
 }
 
@@ -608,6 +622,7 @@ static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 {
 	struct tp_engine_t * ptp_eng;
 	unsigned int size;
+	unsigned int st;
 
 	ptp_eng = ptp_eng_backup;
 	if (ptp_eng)
@@ -632,7 +647,12 @@ static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 				size = ptp_eng->bmp_data.bmp_info.biWidth / 8;
 				tp_eng_ph_write_line(ptp_eng->pph_data, ptp_eng->bmp_data.p_cur_c, size);
 				ptp_eng->bmp_data.p_cur_c = ptp_eng->bmp_data.p_cur_c  - ((ptp_eng->bmp_data.bmp_info.biWidth + 31) / 32 * 4);
-				if (ptp_eng->tp_eng_sen_st.ribbon_broken)
+#if 0
+				if (tp_engine_get_sensor_statu(ptp_eng, &st, SEN_ST_RIBBON_BROKEN))
+				{
+					printk("tp_engine_get_sensor_statu error.\n");
+				}
+				if (st)
 				{
 					ptp_eng->ribbon_info_st.ribbon_broken_white++;
 				}
@@ -662,6 +682,7 @@ static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 						tp_eng_fun_ribbon_run(ptp_eng, 0);
 					}
 				}
+#endif
 			}
 			else
 			{
@@ -773,6 +794,11 @@ static int tp_eng_fun_print_go(struct tp_engine_t * ptp_eng, unsigned char * buf
 	printk("pbmp_info->biSize = %d, pbmp_info->biSizeImage = %d.\n", pbmp_info->biSize, pbmp_info->biSizeImage);
 	printk("pbmp_info->biWidth = %d, pbmp_info->biHeight = %d.\n", pbmp_info->biWidth, pbmp_info->biHeight);
 	printk("buff = %x, cur = %x\n", (int)ptp_eng->bmp_data.buff, (int)ptp_eng->bmp_data.p_cur_c);
+	if(ptp_eng->tp_eng_sen_st.ribbon_broken)
+	{
+		ptp_eng->ribbon_info_st.ribbon_broken_white = 0;
+		ptp_eng->ribbon_info_st.ribbon_broken_black = 0;
+	}
 	tp_eng_fun_ph_move(ptp_eng, 1);		//打印头下压
 	tp_eng_fun_ribbon_run(ptp_eng, 1);	//碳带启动
 	/* 打印与走纸 */
@@ -909,9 +935,9 @@ int tp_eng_fun_print(struct tp_engine_t * ptp_eng, void __user * argp)
                 goto __exit__;         
         }                              
 */
-	if (tp_eng_fun_print_go(ptp_eng, buff))
+	ret = tp_eng_fun_print_go(ptp_eng, buff);
+	if (ret < 0)
 	{
-		ret = -RES_PRINTING_UNKOWN_ERROR;
 		goto __exit__;
 	}
 __exit__:
