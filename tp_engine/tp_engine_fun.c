@@ -214,6 +214,7 @@ int tp_eng_fun_pap_out(struct tp_engine_t * ptp_eng)
 	int step = STEP_PAP_OUT;
 	struct speed_info spd_info;
 	struct callback_data clbk_data;
+	int ret = 0;
 	
 	ppap_motor_data = ptp_eng->ppap_motor_data;
 	memset(&clbk_data, 0, sizeof(clbk_data));
@@ -250,9 +251,17 @@ int tp_eng_fun_pap_out(struct tp_engine_t * ptp_eng)
 	tp_eng_pap_motor_config(ppap_motor_data, step, dir, 1, &spd_info);
 	INIT_WORK(&pap_out_wq, tp_eng_fun_pap_out_do_work);
 	tp_eng_pap_motor_set_callback(ppap_motor_data, NULL, &clbk_data, tp_eng_fun_pap_out_callback, &clbk_data);
-	tp_eng_pap_motor_start(ppap_motor_data);
+	ret = tp_eng_pap_motor_start(ppap_motor_data);
+	if (ret)
+	{
+		return ret;
+	}
 	ptp_eng->eng_state.pap_motor_state = PAP_MOTOR_STATE_OUT;
-	tp_eng_pap_motor_wait_stop(ppap_motor_data);
+	ret = tp_eng_pap_motor_wait_stop(ppap_motor_data);
+	if (ret)
+	{
+		return ret;
+	}
 	return 0;
 }
 EXPORT_SYMBOL_GPL(tp_eng_fun_pap_out);
@@ -314,6 +323,7 @@ int tp_eng_fun_pap_move(struct tp_engine_t * ptp_eng, int step)
 	motion_dir dir;
 	struct speed_info spd_info;
 	struct callback_data clbk_data;
+	int ret = 0;
 	
 	ppap_motor_data = ptp_eng->ppap_motor_data;
 	memset(&clbk_data, 0, sizeof(clbk_data));
@@ -347,10 +357,18 @@ int tp_eng_fun_pap_move(struct tp_engine_t * ptp_eng, int step)
 	}
 	spd_info.steps = step;
 	spd_info.nextspeed = NULL;
-	tp_eng_pap_motor_config(ppap_motor_data, step, dir, 1, &spd_info);
+	ret = tp_eng_pap_motor_config(ppap_motor_data, step, dir, 1, &spd_info);
+	if (ret)
+	{
+		return ret;
+	}
 	INIT_WORK(&pap_move_wq, tp_eng_fun_pap_move_do_work);
 	tp_eng_pap_motor_set_callback(ppap_motor_data, NULL, &clbk_data, tp_eng_fun_pap_move_callback, &clbk_data);
-	tp_eng_pap_motor_start(ppap_motor_data);
+	ret = tp_eng_pap_motor_start(ppap_motor_data);
+	if (ret)
+	{
+		return ret;
+	}
 	return 0;
 }
 EXPORT_SYMBOL_GPL(tp_eng_fun_pap_move);

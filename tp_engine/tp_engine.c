@@ -501,7 +501,11 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				    ret = -EFAULT;
 				    goto __exit__;
 				}
-				tp_eng_fun_ph_move(&ptp_eng_dev->tp_engine, mode);
+				ret = tp_eng_fun_ph_move(&ptp_eng_dev->tp_engine, mode);
+				if (ret)
+				{
+					goto __exit__;
+				}
 			}
 			break;
 		case TP_ENG_IOCTL_PRINT:
