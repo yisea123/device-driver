@@ -10,16 +10,19 @@
 #define TP_PH_DELAY_AFTER_DATA_IN	1		//us
 #define TP_PH_DELAY_AFTER_LATCH_HIGH	1		//us
 
+#define SPEED_0		800
 #define SPEED_1		1200
-#define SPEED_2		1500
-#define SPEED_3		1900
-#define SPEED_4		2254
-#define SPEED_5		2400
-#define SPEED_6		2800
+#define SPEED_2		1350
+#define SPEED_3		1500
+#define SPEED_4		1650
+#define SPEED_5		1800
+#define SPEED_6		2254
+#define SPEED_7		2400
+#define SPEED_8		2800
 
 #define SPEED_PRINTING	SPEED_1
-#define SPEED_PAP_IN	SPEED_5
-#define SPEED_PAP_OUT	SPEED_5
+#define SPEED_PAP_IN	SPEED_7
+#define SPEED_PAP_OUT	SPEED_7
 
 
 #define DEVICE_ID	(0x02020202)	// (always be 0x02020202)

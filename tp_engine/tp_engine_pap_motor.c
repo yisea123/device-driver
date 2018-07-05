@@ -10,7 +10,7 @@
 #include "command.h"
 #include "../motor/steppermotor.h"
 
-#define COMPLETION_TIMEOUT(steps)	msecs_to_jiffies(steps*5)
+#define COMPLETION_TIMEOUT(steps)	msecs_to_jiffies(steps*10)
 
 extern void tp_eng_pap_motor_complete_callback(struct steppermotor *motor, struct callback_data *data);
 extern void tp_eng_pap_motor_per_step_callback(struct steppermotor *motor, struct callback_data *data);
@@ -116,7 +116,7 @@ int tp_eng_pap_motor_wait_stop(struct pap_motor_data_t * ppap_motor_data)
 		complete_all(&(ppap_motor_data->motor_completion));
 		steppermotor_stop(ppap_motor_data->pstepmotor);
 		ppap_motor_data->moving_status = 0;
-		return -RES_PRINTING_UNKOWN_ERROR;
+		return -RES_MEDIA_JAM;
 	}
 	return 0;
 }

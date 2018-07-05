@@ -37,10 +37,6 @@
 
 #define IMAGE_ROTATE	1
 
-#define SPEED_PAP_IN	1800
-#define SPEED_PAP_OUT	SPEED_PAP_IN
-#define SPEED_PRINTING	1200
-
 #define STEP_PAP_IN	4000
 #define STEP_PAP_OUT	4000
 
@@ -103,7 +99,7 @@ int tp_eng_fun_pap_in(struct tp_engine_t * ptp_eng)
 {
 	struct pap_motor_data_t *ppap_motor_data;
 	motion_dir dir;
-	int step = STEP_PAP_IN;
+	int ret, step = STEP_PAP_IN;
 	struct speed_info spd_info;
 	struct callback_data clbk_data;
 	
@@ -147,12 +143,28 @@ int tp_eng_fun_pap_in(struct tp_engine_t * ptp_eng)
 	}
 	spd_info.steps = step;
 	spd_info.nextspeed = NULL;
-	tp_eng_pap_motor_config(ppap_motor_data, step, dir, 1, &spd_info);
+	ret = tp_eng_pap_motor_config(ppap_motor_data, step, dir, 1, &spd_info);
+	if (ret < 0)
+	{
+		return ret;
+	}
 	INIT_WORK(&pap_in_wq, tp_eng_fun_pap_in_do_work);
-	tp_eng_pap_motor_set_callback(ppap_motor_data, NULL, &clbk_data, tp_eng_fun_pap_in_callback, &clbk_data);
-	tp_eng_pap_motor_start(ppap_motor_data);
+	ret = tp_eng_pap_motor_set_callback(ppap_motor_data, NULL, &clbk_data, tp_eng_fun_pap_in_callback, &clbk_data);
+	if (ret < 0)
+	{
+		return ret;
+	}
+	ret = tp_eng_pap_motor_start(ppap_motor_data);
+	if (ret < 0)
+	{
+		return ret;
+	}
 	ptp_eng->eng_state.pap_motor_state = PAP_MOTOR_STATE_IN;
-	tp_eng_pap_motor_wait_stop(ppap_motor_data);
+	ret = tp_eng_pap_motor_wait_stop(ppap_motor_data);
+	if (ret < 0)
+	{
+		return ret;
+	}
 	return 0;
 }
 EXPORT_SYMBOL_GPL(tp_eng_fun_pap_in);
@@ -380,27 +392,37 @@ int tp_eng_fun_ph_move(struct tp_engine_t * ptp_eng, unsigned char mode)
 			if (ret)
 			{
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_config.\n");
+				ret = RES_PRINTING_PUSH_MOTOR_ERROR;
+				goto __exit__;
 			}
 			tp_engine_sensor_set_callback(psen, tp_eng_fun_ph_up_callback, &sen_clbk_data);
 			ret = tp_eng_ph_motor_start(pph_motor_data);
 			if (ret)
 			{
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_start.\n");
+				ret = -RES_PRINTING_PUSH_MOTOR_ERROR;
+				goto __exit__;
 			}
 			ret = tp_eng_ph_motor_wait_stoped(pph_motor_data);
 			if (ret)
 			{
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_wait_stoped.\n");
+				ret = -RES_PRINTING_PUSH_MOTOR_ERROR;
+				goto __exit__;
 			}
 			ret = tp_eng_ph_motor_config(pph_motor_data, MOTION_CLOCKWISE, PH_MOTOR_TIME_OUT);
 			if (ret)
 			{
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_config.\n");
+				ret = -RES_PRINTING_PUSH_MOTOR_ERROR;
+				goto __exit__;
 			}
 			ret = tp_eng_ph_motor_start(pph_motor_data);
 			if (ret)
 			{
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_start.\n");
+				ret = -RES_PRINTING_PUSH_MOTOR_ERROR;
+				goto __exit__;
 			}
 			mdelay(15);
 			tp_eng_ph_motor_stop(pph_motor_data);
@@ -427,27 +449,37 @@ int tp_eng_fun_ph_move(struct tp_engine_t * ptp_eng, unsigned char mode)
 //		return -1;
 //	}
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_config.\n");
+				ret = -RES_PRINTING_PUSH_MOTOR_NOT_WORK;
+				goto __exit__;
 			}
 			tp_engine_sensor_set_callback(psen, tp_eng_fun_ph_up_callback, &sen_clbk_data);
 			ret = tp_eng_ph_motor_start(pph_motor_data);
 			if (ret)
 			{
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_start.\n");
+				ret = -RES_PRINTING_PUSH_MOTOR_NOT_WORK;
+				goto __exit__;
 			}
 			ret = tp_eng_ph_motor_wait_stoped(pph_motor_data);
 			if (ret)
 			{
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_wait_stoped.\n");
+				ret = -RES_PRINTING_PUSH_MOTOR_NOT_WORK;
+				goto __exit__;
 			}
 			ret = tp_eng_ph_motor_config(pph_motor_data, MOTION_CLOCKWISE, PH_MOTOR_TIME_OUT);
 			if (ret)
 			{
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_config.\n");
+				ret = -RES_PRINTING_PUSH_MOTOR_NOT_WORK;
+				goto __exit__;
 			}
 			ret = tp_eng_ph_motor_start(pph_motor_data);
 			if (ret)
 			{
 				printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_start.\n");
+				ret = -RES_PRINTING_PUSH_MOTOR_NOT_WORK;
+				goto __exit__;
 			}
 			mdelay(45);
 			tp_eng_ph_motor_stop(pph_motor_data);
@@ -476,11 +508,13 @@ int tp_eng_fun_ribbon_run(struct tp_engine_t * ptp_eng, unsigned char mode)
 		if (ret)
 		{
 		    printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_config.\n");
+		    ret = RES_PRINTING_UNKOWN_ERROR;
 		}
 		ret = tp_eng_ribbon_motor_start(pribbon_motor_data);
 		if (ret)
 		{
 		    printk(KERN_ERR "ERROR!!! tp_engine_ioctl tp_eng_ph_motor_start.\n");
+		    ret = RES_PRINTING_UNKOWN_ERROR;
 		}
 	}
 	else
@@ -583,7 +617,7 @@ static void tp_eng_fun_update_sensor_wq(struct work_struct * work)
 	rs = tp_engine_get_sensor_statu(ptp_eng, &st, SEN_ST_RIBBON_EXSIT);
 	if (rs)
 	{
-		printk("tp_engine_get_sensor_statu error.\n");
+		printk("tp_engine_get_sensor_statu errtp_eng_pap_motor_wait_stopor.\n");
 	}
 	else
 	{
@@ -618,12 +652,16 @@ static void tp_eng_fun_update_sensor_wq(struct work_struct * work)
 }
 
 static struct work_struct print_go_wq;
+static struct workqueue_struct * print_go_workqueue = NULL;
+static struct workqueue_struct * update_sensor_workqueue = NULL;
 static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 {
 	struct tp_engine_t * ptp_eng;
 	unsigned int size;
 	unsigned int st;
-
+	int ribbon_broken_white = 0;
+	int ribbon_broken_black = 0;
+	
 	ptp_eng = ptp_eng_backup;
 	if (ptp_eng)
 	{
@@ -647,24 +685,26 @@ static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 				size = ptp_eng->bmp_data.bmp_info.biWidth / 8;
 				tp_eng_ph_write_line(ptp_eng->pph_data, ptp_eng->bmp_data.p_cur_c, size);
 				ptp_eng->bmp_data.p_cur_c = ptp_eng->bmp_data.p_cur_c  - ((ptp_eng->bmp_data.bmp_info.biWidth + 31) / 32 * 4);
-#if 0
+#if 1
 				if (tp_engine_get_sensor_statu(ptp_eng, &st, SEN_ST_RIBBON_BROKEN))
 				{
 					printk("tp_engine_get_sensor_statu error.\n");
 				}
 				if (st)
 				{
-					ptp_eng->ribbon_info_st.ribbon_broken_white++;
+					ribbon_broken_white++;
 				}
 				else
 				{
-					ptp_eng->ribbon_info_st.ribbon_broken_black++;
+					ribbon_broken_black++;
 				}
-				if (ptp_eng->ribbon_info_st.ribbon_broken_white > ptp_eng->ribbon_info_st.ribbon_broken_black)
+				if (ribbon_broken_white > ribbon_broken_black)
 				{
-					if((ptp_eng->ribbon_info_st.ribbon_broken_white - ptp_eng->ribbon_info_st.ribbon_broken_black) > 500)
+					if((ribbon_broken_white - ribbon_broken_black) > 1000)
 					{
 						printk("tp_eng_fun_print_go_callback ribbon_broken_black.\n");
+//						printk("ptp_eng->ribbon_info_st.ribbon_broken_white is %d.\n", ribbon_broken_white);
+//						printk("ptp_eng->ribbon_info_st.ribbon_broken_black is %d.\n", ribbon_broken_black);
 						ptp_eng->tp_eng_sen_st.ribbon_broken = 1;
 						ptp_eng->eng_state.pap_motor_state = PAP_MOTOR_STATE_STOP;
 						tp_eng_pap_motor_stop(ptp_eng->ppap_motor_data);
@@ -673,9 +713,11 @@ static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 				}
 				else
 				{
-					if((ptp_eng->ribbon_info_st.ribbon_broken_black - ptp_eng->ribbon_info_st.ribbon_broken_white) > 500)
+					if((ribbon_broken_white - ribbon_broken_black) > 1000)
 					{
 						printk("tp_eng_fun_print_go_callback ribbon_broken_black.\n");
+//						printk("ptp_eng->ribbon_info_st.ribbon_broken_white is %d.\n", ribbon_broken_white);
+//						printk("ptp_eng->ribbon_info_st.ribbon_broken_black is %d.\n", ribbon_broken_black);
 						ptp_eng->tp_eng_sen_st.ribbon_broken = 1;
 						ptp_eng->eng_state.pap_motor_state = PAP_MOTOR_STATE_STOP;
 						tp_eng_pap_motor_stop(ptp_eng->ppap_motor_data);
@@ -706,11 +748,25 @@ static void tp_eng_fun_print_go_callback(struct pap_motor_data_t *ppap_motor_dat
 	{
 		ptp_eng_backup = ptp_eng;
 	}
-	schedule_work(&print_go_wq);
+	if (print_go_workqueue)
+	{
+		queue_work(print_go_workqueue, &print_go_wq);
+	}
+	else
+	{
+		queue_work(system_highpri_wq, &print_go_wq);
+	}
 	step_lost = steppermotor_get_running_steps(ppap_motor_data->pstepmotor);
 	if ((step_lost % 10 == 0) && ((step_lost & STEP_MOTOR_STEPS_STOP_FLAG) == 0))
 	{
-		schedule_work(&update_sensor_wq);
+		if (update_sensor_workqueue)
+		{
+			queue_work(update_sensor_workqueue, &update_sensor_wq);
+		}
+		else
+		{
+			queue_work(system_highpri_wq, &update_sensor_wq);
+		}
 	}
 	if (ptp_eng->tp_eng_sen_st.pap_in)
 	{
@@ -769,6 +825,11 @@ static int tp_eng_fun_print_go(struct tp_engine_t * ptp_eng, unsigned char * buf
 		printk("no ribbon.\n");
 		return -RES_PRINTING_RINBON_END;
 	}
+	if (ptp_eng->tp_eng_sen_st.ribbon_broken == 1)
+	{
+		printk("ribbon broken.\n");
+		return -RES_PRINTING_RINBBON_BROKEN;
+	}
 	ppap_motor_data = ptp_eng->ppap_motor_data;
 	pbmp_header = &ptp_eng->bmp_data.bmp_header;
 	pbmp_info = &ptp_eng->bmp_data.bmp_info;
@@ -799,8 +860,16 @@ static int tp_eng_fun_print_go(struct tp_engine_t * ptp_eng, unsigned char * buf
 		ptp_eng->ribbon_info_st.ribbon_broken_white = 0;
 		ptp_eng->ribbon_info_st.ribbon_broken_black = 0;
 	}
-	tp_eng_fun_ph_move(ptp_eng, 1);		//打印头下压
-	tp_eng_fun_ribbon_run(ptp_eng, 1);	//碳带启动
+	ret = tp_eng_fun_ph_move(ptp_eng, 1);		//打印头下压
+	if (ret < 0)
+	{
+		return -RES_PRINTING_PUSH_MOTOR_NOT_WORK;
+	}
+	ret = tp_eng_fun_ribbon_run(ptp_eng, 1);      //碳带启动
+	if (ret < 0)
+	{
+		return ret;
+	}
 	/* 打印与走纸 */
 	step = ptp_eng->bmp_data.bmp_info.biHeight;
 	dir = MOTION_CLOCKWISE;
@@ -816,15 +885,49 @@ static int tp_eng_fun_print_go(struct tp_engine_t * ptp_eng, unsigned char * buf
 	spd_info.nextspeed = NULL;
 	tp_eng_pap_motor_config(ppap_motor_data, step, dir, 1, &spd_info);
 	//tp_eng_ph_config(ptp_eng->pph_data, &ph_conf);
+	print_go_workqueue = alloc_workqueue("print_go_wq", (WQ_HIGHPRI|WQ_CPU_INTENSIVE), 1);//create_workqueue("print_go_wq");
+	if (!print_go_workqueue)
+	{
+		panic("Failed to create print_go_workqueue\n");
+	}
+	update_sensor_workqueue = alloc_workqueue("update_sensor_workqueue", 0, 0);
+	if (!update_sensor_workqueue)
+	{
+		panic("Failed to create update_sensor_workqueue\n");
+	}
 	INIT_WORK(&print_go_wq, tp_eng_fun_print_go_do_work);
 	INIT_WORK(&update_sensor_wq, tp_eng_fun_update_sensor_wq);
 	memset(&clbk_data, 0, sizeof(clbk_data));
 	clbk_data.data1 = (int)ptp_eng;
-	tp_eng_pap_motor_set_callback(ppap_motor_data, tp_eng_fun_print_go_end_callback, &clbk_data, tp_eng_fun_print_go_callback, &clbk_data);
-	tp_eng_pap_motor_start(ppap_motor_data);
+	ret = tp_eng_pap_motor_set_callback(ppap_motor_data, tp_eng_fun_print_go_end_callback, &clbk_data, tp_eng_fun_print_go_callback, &clbk_data);
+	if (ret)
+	{
+		return ret;
+	}
+	ret = tp_eng_pap_motor_start(ppap_motor_data);
+	if (ret)
+	{
+		return ret;
+	}
 	ptp_eng->eng_state.pap_motor_state = PAP_MOTOR_STATE_PRINT;
-	tp_eng_pap_motor_wait_stop(ppap_motor_data);
-	tp_eng_ribbon_motor_wait_stoped(ptp_eng->pribbon_motor_data);
+	ret = tp_eng_pap_motor_wait_stop(ppap_motor_data);
+	if (ret)
+	{
+		return ret;
+	}
+	ret = tp_eng_ribbon_motor_wait_stoped(ptp_eng->pribbon_motor_data);
+	if (ret)
+	{
+		return ret;
+	}
+	if (print_go_workqueue)
+	{
+		destroy_workqueue(print_go_workqueue);
+	}
+	if(update_sensor_workqueue)
+	{
+		destroy_workqueue(update_sensor_workqueue);
+	}
 	tp_eng_fun_sensor_update(ptp_eng);
 	
 	if (ptp_eng->tp_eng_sen_st.ribbon_broken == 1)
@@ -992,4 +1095,5 @@ int tp_engine_get_ph_config(struct tp_engine_t * ptp_engine, struct tp_ph_config
 
 }
 EXPORT_SYMBOL_GPL(tp_engine_get_ph_config);
+
 

@@ -506,7 +506,11 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 			break;
 		case TP_ENG_IOCTL_PRINT:
 			{
-				tp_eng_fun_print(&ptp_eng_dev->tp_engine, argp);
+				ret = tp_eng_fun_print(&ptp_eng_dev->tp_engine, argp);
+				if (ret)
+				{
+					goto __exit__;
+				}
 			}
 			break;
 		case TP_ENG_IOCTL_PAP_IN:
@@ -583,6 +587,17 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				unsigned int status;
 				ret = tp_engine_get_sensor_status(&ptp_eng_dev->tp_engine, &status);
 				if (copy_to_user((void __user *)argp, &status,sizeof(int)))
+				{
+					printk(KERN_NOTICE "tp_engine_ioctl TP_ENG_IOCTL_SENSOR_ST: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
+				}
+			}
+			break;
+		case TP_ENG_IOCTL_SENSOR_LOGIC_ST:
+			{
+				tp_eng_fun_sensor_update(&ptp_eng_dev->tp_engine);
+				if (copy_to_user((void __user *)argp, &ptp_eng_dev->tp_engine.tp_eng_sen_st, sizeof(struct tp_engine_sen_st_t)))
 				{
 					printk(KERN_NOTICE "tp_engine_ioctl TP_ENG_IOCTL_SENSOR_ST: copy_from_user fail\n");
 					ret = -EFAULT;
