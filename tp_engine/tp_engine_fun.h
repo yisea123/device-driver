@@ -19,7 +19,7 @@ int tp_eng_fun_pap_in(struct tp_engine_t * ptp_eng);
 int tp_eng_fun_pap_out(struct tp_engine_t * ptp_eng);
 int tp_eng_fun_pap_move(struct tp_engine_t * ptp_eng, int step);
 int tp_eng_fun_sensor_update(struct tp_engine_t * ptp_eng);
-int tp_eng_fun_print(struct tp_engine_t * ptp_eng, void __user * argp);
+long tp_eng_fun_print(struct tp_engine_t * ptp_eng, void __user * argp);
 int tp_engine_get_pap_lenght(struct tp_engine_t *ptp_engine, unsigned int *lenght);
 int tp_engine_get_eng_config(struct tp_engine_t *ptp_engine, struct tp_engine_config_t *peng_config);
 

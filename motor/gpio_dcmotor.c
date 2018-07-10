@@ -70,7 +70,7 @@ static int gpio_dcmotor_start(struct dcmotor *motor)
 	gpio_direction_output(motordev->dcmoto_gpio_en2, GPIO_VALUE_LOW);
 	gpio_direction_output((motordev->motor.config.dir ? motordev->dcmoto_gpio_en1 : motordev->dcmoto_gpio_en2), GPIO_VALUE_HIGH);
 	motor->status |= DCMOTOR_RUNNING;
-	printk("dcmotor start.\n");
+	printk(KERN_DEBUG "dcmotor start.\n");
 	return ret;
 }
 
@@ -90,7 +90,7 @@ static void gpio_dcmotor_stop(struct dcmotor *motor)
 	gpio_direction_output(motordev->dcmoto_gpio_en1, GPIO_VALUE_LOW);
 	gpio_direction_output(motordev->dcmoto_gpio_en2, GPIO_VALUE_LOW);
 	motor->status &= ~DCMOTOR_RUNNING;
-	printk("dcmotor stop.\n");
+	printk(KERN_DEBUG "dcmotor stop.\n");
 	if (motor->callback)
 	{
 		motor->callback(motor, &(motor->callbackdata));
@@ -107,7 +107,7 @@ static int gpio_dcmotor_config(struct dcmotor *motor, const struct dcmotor_confi
 		return -EINVAL;
 	
 	motordev->motor.config.dir = config->dir; 
-	printk("dcmotor config.dir = %d\n",motordev->motor.config.dir);
+	printk(KERN_DEBUG "dcmotor config.dir = %d\n",motordev->motor.config.dir);
 	return ret;
 }
 

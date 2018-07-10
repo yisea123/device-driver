@@ -25,7 +25,7 @@
 #include "dcmotor.h"
 
 #define DEFAULT_PERIOD				40000
-#define DEFAULT_DUTY				15
+#define DEFAULT_DUTY				0
 #define pwm_set_duty(period, percent)		(period * percent / 100)	/* pwm占空比，百分比 */
 
 struct motor_dev {

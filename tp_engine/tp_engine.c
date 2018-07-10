@@ -492,7 +492,7 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				}
 			}
 			break;
-	        case TP_ENG_IOCTL_PH_UP_DOWN:
+			case TP_ENG_IOCTL_PH_UP_DOWN:
 			{
 				unsigned int mode = 1;
 				if(copy_from_user((void *)(&mode), (void __user *)argp, sizeof(int)))
@@ -518,10 +518,18 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 			}
 			break;
 		case TP_ENG_IOCTL_PAP_IN:
-			tp_eng_fun_pap_in(&ptp_eng_dev->tp_engine);
+			ret = tp_eng_fun_pap_in(&ptp_eng_dev->tp_engine);
+			if (ret)
+			{
+				goto __exit__;
+			}
 			break;
 		case TP_ENG_IOCTL_PAP_OUT:
-			tp_eng_fun_pap_out(&ptp_eng_dev->tp_engine);
+			ret = tp_eng_fun_pap_out(&ptp_eng_dev->tp_engine);
+			if (ret)
+			{
+				goto __exit__;
+			}
 			break;
 		case TP_ENG_IOCTL_GET_PAP_LENGHT:
 			{
@@ -566,30 +574,38 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				int argv;
 				if(copy_from_user((void *)(&argv), (void __user *)argp, sizeof(int)))
 				{
-				    printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
-				    ret = -EFAULT;
-				    goto __exit__;
+					printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
 				}
 				tp_eng_fun_pap_move(&ptp_eng_dev->tp_engine, argv);
 			}
 			break;
 		case TP_ENG_IOCTL_RIBBON_RUN:
 			{
-			    unsigned int mode = 1;
-			    if(copy_from_user((void *)(&mode), (void __user *)argp, sizeof(int)))
-			    {
-				    printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
-				    ret = -EFAULT;
-				    goto __exit__;
-			    }
-			    printk(KERN_DEBUG "TP_ENG_IOCTL_PH_UP_DOWN mode = 0x%x.\n", (unsigned int)mode);
-			    tp_eng_fun_ribbon_run(&ptp_eng_dev->tp_engine, mode);
-		        }
-		        break;
+				unsigned int mode = 1;
+				if(copy_from_user((void *)(&mode), (void __user *)argp, sizeof(int)))
+				{
+					printk(KERN_ERR "tp_engine_ioctl TP_ENG_IOCTL_PH_UP_DOWN: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
+				}
+				printk(KERN_DEBUG "TP_ENG_IOCTL_PH_UP_DOWN mode = 0x%x.\n", (unsigned int)mode);
+				ret = tp_eng_fun_ribbon_run(&ptp_eng_dev->tp_engine, mode);
+				if (ret)
+				{
+					goto __exit__;
+				}
+			}
+			break;
 		case TP_ENG_IOCTL_SENSOR_ST:
 			{
 				unsigned int status;
 				ret = tp_engine_get_sensor_status(&ptp_eng_dev->tp_engine, &status);
+				if (ret)
+				{
+					goto __exit__;
+				}
 				if (copy_to_user((void __user *)argp, &status,sizeof(int)))
 				{
 					printk(KERN_NOTICE "tp_engine_ioctl TP_ENG_IOCTL_SENSOR_ST: copy_from_user fail\n");

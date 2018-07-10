@@ -150,7 +150,7 @@ static void pwm_stepmotor_stop_after_steps(struct steppermotor *motor, unsigned 
 	p_running_info = &motordev->running_info;
 	motor->status &= ~STEPPERMOTOR_RUNNING;
 	spin_lock_irqsave(&p_running_info->running_info_lock, irq_flags);
-	printk("pwm_stepmotor stop after %d, cur step is %d.\n", step, p_running_info->step_lose);
+	printk(KERN_DEBUG "pwm_stepmotor stop after %d, cur step is %d.\n", step, p_running_info->step_lose);
 	p_running_info->step_left = step;
 	spin_unlock_irqrestore(&p_running_info->running_info_lock, irq_flags);
 }
@@ -292,7 +292,7 @@ static int pwm_stepmotor_config(struct steppermotor *motor, const struct stepper
 	period = DEFAULT_PERIOD;	//sconfig->speedinfo->speed;
 	duty = DRIVER_IC_DUTY;
 #endif
-	printk("stepmotor config.\n");
+	printk(KERN_DEBUG "stepmotor config.\n");
 	pwm_config(motordev->pwm, duty, period);
 	gpio_direction_output(motordev->gpio_dir, (config->dir ? GPIO_VALUE_LOW : GPIO_VALUE_HIGH)); 
 	
@@ -447,7 +447,7 @@ irqreturn_t pwm_stepmotor_isr(int irq, void *dev_id)
 		spin_lock_irqsave(&p_running_info->running_info_lock, irq_flags);
 		p_running_info->running_st = STEPMOTOR_ST_POSIT;
 		spin_unlock_irqrestore(&p_running_info->running_info_lock, irq_flags);
-		printk("pwm_stepmotor stoped at steps %d.\n", p_running_info->step_lose);
+		printk(KERN_DEBUG "pwm_stepmotor stoped at steps %d.\n", p_running_info->step_lose);
 		if(motor->callback)
 		{
 			motor->status = STEPPERMOTOR_STOPPED_BY_TOTAL_STEPS;

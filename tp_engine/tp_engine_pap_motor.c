@@ -62,7 +62,7 @@ int tp_eng_pap_motor_start(struct pap_motor_data_t * ppap_motor_data)
 {
 	int ret = 0;
 	
-	printk("tp_eng_pap_motor_start.\n");
+	printk(KERN_DEBUG "tp_eng_pap_motor_start.\n");
 	ret = steppermotor_set_config(ppap_motor_data->pstepmotor, &ppap_motor_data->step_conf);
 	if(ret)
 	{
