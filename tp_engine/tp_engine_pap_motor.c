@@ -74,6 +74,7 @@ int tp_eng_pap_motor_start(struct pap_motor_data_t * ppap_motor_data)
 	if(ret)
 	{
 		printk(KERN_ERR "tp_eng_pap_motor_start: steppermotor_start error!\n");
+		steppermotor_stop(ppap_motor_data->pstepmotor);
 		complete_all(&(ppap_motor_data->motor_completion));
 		return -RES_PRINTING_UNKOWN_ERROR;
 	}

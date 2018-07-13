@@ -59,6 +59,7 @@ int tp_eng_ribbon_motor_start(struct ribbon_motor_data_t * pribbon_motor_data)
 	if(ret)
 	{
 		printk(KERN_ERR "tp_eng_stepmotor_start: steppermotor_start error!\n");
+		dcmotor_stop(pribbon_motor_data->pdcmotor);
 		return -RES_PRINTING_RINBBON_WHELL;
 	}
 	pribbon_motor_data->moving_status = 1;

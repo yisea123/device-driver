@@ -492,7 +492,7 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				}
 			}
 			break;
-			case TP_ENG_IOCTL_PH_UP_DOWN:
+		case TP_ENG_IOCTL_PH_UP_DOWN:
 			{
 				unsigned int mode = 1;
 				if(copy_from_user((void *)(&mode), (void __user *)argp, sizeof(int)))

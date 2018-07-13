@@ -59,6 +59,7 @@ int tp_eng_ph_motor_start(struct ph_motor_data_t * pph_motor_data)
 	if(ret)
 	{
 		printk(KERN_ERR "tp_eng_stepmotor_start: steppermotor_start error!\n");
+		dcmotor_stop(pph_motor_data->pdcmotor);
 		return -RES_PRINTING_PUSH_MOTOR_NOT_WORK;
 	}
 	pph_motor_data->moving_status = 1;
