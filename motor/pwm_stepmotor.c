@@ -44,7 +44,7 @@
 #define SPEED_TO_COUNT(speed,stepping,clock)	(((1000000000L / (speed)) / (stepping)) / (clock))
 
 
-static DEFINE_MUTEX(stepmotor_mutex);
+//static DEFINE_MUTEX(stepmotor_mutex);
 
 //步进电机运行状态指示
 typedef enum
@@ -268,7 +268,7 @@ static int pwm_stepmotor_config(struct steppermotor *motor, const struct stepper
 	if (steppermotor_is_running(motor->status))
 		return -EBUSY;
 	p_running_info = &motordev->running_info;
-	mutex_lock(&stepmotor_mutex);
+//	mutex_lock(&stepmotor_mutex);
 	
 #if PWM_STEPMOTOR_SPEED_CTRL
 	speedinfo = config->speedinfo;
@@ -296,7 +296,7 @@ static int pwm_stepmotor_config(struct steppermotor *motor, const struct stepper
 	pwm_config(motordev->pwm, duty, period);
 	gpio_direction_output(motordev->gpio_dir, (config->dir ? GPIO_VALUE_LOW : GPIO_VALUE_HIGH)); 
 	
-	mutex_unlock(&stepmotor_mutex);
+//	mutex_unlock(&stepmotor_mutex);
 	return ret;
 }
 

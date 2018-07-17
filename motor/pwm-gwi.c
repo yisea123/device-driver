@@ -243,7 +243,7 @@ static int imx_pwm_config_v3(struct pwm_chip *chip,
 	} else {
 		writel(MX3_PWMCR_SWR, imx->mmio_base + MX3_PWMCR);
 		do {
-			usleep_range(200, 1000);	//shidawei pwm_config用于中断函数中调用，不能使用延时函数
+//			usleep_range(200, 1000);	//shidawei pwm_config用于中断函数中调用，不能使用延时函数
 			cr = readl(imx->mmio_base + MX3_PWMCR);
 		} while ((cr & MX3_PWMCR_SWR) &&
 			 (wait_count++ < MX3_PWM_SWR_LOOP));
