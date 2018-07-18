@@ -962,7 +962,9 @@ static long tp_eng_fun_print_go(struct tp_engine_t * ptp_eng, unsigned char * bu
 		printk(KERN_ERR "ribbon end.\n");
 		return -RES_PRINTING_RINBON_END;
 	}
-
+//碳带断裂计数清零
+	ptp_eng->ribbon_info_st.ribbon_broken_white = 0;
+	ptp_eng->ribbon_info_st.ribbon_broken_black = 0;
 	return ret;
 }
 
