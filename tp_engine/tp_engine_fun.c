@@ -677,9 +677,7 @@ static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 	struct tp_engine_t * ptp_eng;
 	unsigned int size;
 	unsigned int st;
-	int ribbon_broken_white = 0;
-	int ribbon_broken_black = 0;
-	
+
 	ptp_eng = ptp_eng_backup;
 	if (ptp_eng)
 	{
@@ -710,19 +708,20 @@ static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 				}
 				if (st)
 				{
-					ribbon_broken_white++;
+					ptp_eng->ribbon_info_st.ribbon_broken_white++;
 				}
 				else
 				{
-					ribbon_broken_black++;
+					ptp_eng->ribbon_info_st.ribbon_broken_black++;
 				}
-				if (ribbon_broken_white > ribbon_broken_black)
+//				printk("ptp_eng->ribbon_info_st.ribbon_broken_white is %d ribbon_broken_black %d.\n", ptp_eng->ribbon_info_st.ribbon_broken_white, ptp_eng->ribbon_info_st.ribbon_broken_black);
+				if ((ptp_eng->ribbon_info_st.ribbon_broken_white) > (ptp_eng->ribbon_info_st.ribbon_broken_black))
 				{
-					if((ribbon_broken_white - ribbon_broken_black) > 1000)
+					if(((ptp_eng->ribbon_info_st.ribbon_broken_white) - (ptp_eng->ribbon_info_st.ribbon_broken_black)) > 1000)
 					{
-						printk("tp_eng_fun_print_go_callback ribbon_broken_black.\n");
-//						printk("ptp_eng->ribbon_info_st.ribbon_broken_white is %d.\n", ribbon_broken_white);
-//						printk("ptp_eng->ribbon_info_st.ribbon_broken_black is %d.\n", ribbon_broken_black);
+						printk(KERN_DEBUG "tp_eng_fun_print_go_callback ribbon_broken_black.\n");
+						printk(KERN_DEBUG "ptp_eng->ribbon_info_st.ribbon_broken_white is %d.\n", ptp_eng->ribbon_info_st.ribbon_broken_white);
+						printk(KERN_DEBUG "ptp_eng->ribbon_info_st.ribbon_broken_black is %d.\n", ptp_eng->ribbon_info_st.ribbon_broken_black);
 						ptp_eng->tp_eng_sen_st.ribbon_broken = 1;
 						ptp_eng->eng_state.pap_motor_state = PAP_MOTOR_STATE_STOP;
 						tp_eng_pap_motor_stop(ptp_eng->ppap_motor_data);
@@ -731,11 +730,11 @@ static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 				}
 				else
 				{
-					if((ribbon_broken_white - ribbon_broken_black) > 1000)
+					if(((ptp_eng->ribbon_info_st.ribbon_broken_black) - (ptp_eng->ribbon_info_st.ribbon_broken_white)) > 1000)
 					{
 						printk(KERN_DEBUG "tp_eng_fun_print_go_callback ribbon_broken_black.\n");
-//						printk("ptp_eng->ribbon_info_st.ribbon_broken_white is %d.\n", ribbon_broken_white);
-//						printk("ptp_eng->ribbon_info_st.ribbon_broken_black is %d.\n", ribbon_broken_black);
+						printk(KERN_DEBUG "ptp_eng->ribbon_info_st.ribbon_broken_white is %d.\n", ptp_eng->ribbon_info_st.ribbon_broken_white);
+						printk(KERN_DEBUG "ptp_eng->ribbon_info_st.ribbon_broken_black is %d.\n", ptp_eng->ribbon_info_st.ribbon_broken_black);
 						ptp_eng->tp_eng_sen_st.ribbon_broken = 1;
 						ptp_eng->eng_state.pap_motor_state = PAP_MOTOR_STATE_STOP;
 						tp_eng_pap_motor_stop(ptp_eng->ppap_motor_data);
