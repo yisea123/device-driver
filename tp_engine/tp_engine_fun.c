@@ -35,7 +35,7 @@
 #include "../tp_printer_header/printer_header_common.h"
 #include "../tp_printer_header/tp_printer_header.h"
 
-#define IMAGE_ROTATE	1
+#define IMAGE_ROTATE	1		//从最后一线开始
 
 #define STEP_PAP_IN	4000
 #define STEP_PAP_OUT	4000
@@ -700,7 +700,11 @@ static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 				}
 				size = ptp_eng->bmp_data.bmp_info.biWidth / 8;
 				tp_eng_ph_write_line(ptp_eng->pph_data, ptp_eng->bmp_data.p_cur_c, size);
-				ptp_eng->bmp_data.p_cur_c = ptp_eng->bmp_data.p_cur_c  - ((ptp_eng->bmp_data.bmp_info.biWidth + 31) / 32 * 4);
+#if IMAGE_ROTATE
+				ptp_eng->bmp_data.p_cur_c = ptp_eng->bmp_data.p_cur_c - ((ptp_eng->bmp_data.bmp_info.biWidth + 31) / 32 * 4);
+#else
+				ptp_eng->bmp_data.p_cur_c = ptp_eng->bmp_data.p_cur_c + ((ptp_eng->bmp_data.bmp_info.biWidth + 31) / 32 * 4);
+#endif
 #if 1
 				if (tp_engine_get_sensor_statu(ptp_eng, &st, SEN_ST_RIBBON_BROKEN))
 				{
@@ -864,14 +868,15 @@ static long tp_eng_fun_print_go(struct tp_engine_t * ptp_eng, unsigned char * bu
 	}
 	ptp_eng->bmp_data.buff = buff + pbmp_header->bfOffBits;
 #if IMAGE_ROTATE
-	ptp_eng->bmp_data.p_cur_c = ptp_eng->bmp_data.buff + ptp_eng->bmp_data.bmp_info.biSizeImage;
+	ptp_eng->bmp_data.p_cur_c = ptp_eng->bmp_data.buff + ptp_eng->bmp_data.bmp_info.biSizeImage - ((ptp_eng->bmp_data.bmp_info.biWidth + 31) / 32 * 4);
 #else
 	ptp_eng->bmp_data.p_cur_c = ptp_eng->bmp_data.buff;
 #endif
-	printk(KERN_DEBUG "pbmp_header->bfType = %x, pbmp_header->bfOffBits = %d..\n", pbmp_header->bfType, pbmp_header->bfOffBits);
+	printk(KERN_DEBUG "pbmp_header->bfType = %x, pbmp_header->bfSize = %d, pbmp_header->bfOffBits = %d..\n", pbmp_header->bfType, pbmp_header->bfSize, pbmp_header->bfOffBits);
 	printk(KERN_DEBUG "pbmp_info->biSize = %d, pbmp_info->biSizeImage = %d.\n", pbmp_info->biSize, pbmp_info->biSizeImage);
 	printk(KERN_DEBUG "pbmp_info->biWidth = %d, pbmp_info->biHeight = %d.\n", pbmp_info->biWidth, pbmp_info->biHeight);
-	printk(KERN_DEBUG "buff = %x, cur = %x\n", (int)ptp_eng->bmp_data.buff, (int)ptp_eng->bmp_data.p_cur_c);
+	printk(KERN_DEBUG "pbmp_info->biClrUsed = %d, pbmp_info->biClrImportant = %d.\n", pbmp_info->biClrUsed, pbmp_info->biClrImportant);
+	printk(KERN_DEBUG "bit data buff = 0x%x, cur = 0x%x\n", (int)ptp_eng->bmp_data.buff, (int)ptp_eng->bmp_data.p_cur_c);
 	if(ptp_eng->tp_eng_sen_st.ribbon_broken)
 	{
 		ptp_eng->ribbon_info_st.ribbon_broken_white = 0;
@@ -950,8 +955,15 @@ static long tp_eng_fun_print_go(struct tp_engine_t * ptp_eng, unsigned char * bu
 	if (ptp_eng->tp_eng_sen_st.ribbon_broken == 1)
 	{
 		printk(KERN_ERR "ribbon broken.\n");
+		ptp_eng->ribbon_info_st.ribbon_broken_white = 0;
+		ptp_eng->ribbon_info_st.ribbon_broken_black = 0;
 		return -RES_PRINTING_RINBBON_BROKEN;
 	}
+	
+//碳带断裂黑白计数清零
+	ptp_eng->ribbon_info_st.ribbon_broken_white = 0;
+	ptp_eng->ribbon_info_st.ribbon_broken_black = 0;
+	
 	if (ptp_eng->tp_eng_sen_st.pap_out == 0)
 	{
 		printk(KERN_ERR "paper jam.\n");
@@ -962,9 +974,6 @@ static long tp_eng_fun_print_go(struct tp_engine_t * ptp_eng, unsigned char * bu
 		printk(KERN_ERR "ribbon end.\n");
 		return -RES_PRINTING_RINBON_END;
 	}
-//碳带断裂计数清零
-	ptp_eng->ribbon_info_st.ribbon_broken_white = 0;
-	ptp_eng->ribbon_info_st.ribbon_broken_black = 0;
 	return ret;
 }
 
@@ -1057,6 +1066,7 @@ long tp_eng_fun_print(struct tp_engine_t * ptp_eng, void __user * argp)
                 goto __exit__;         
         }                              
 */
+	printk("bmp buff addr = 0x%x\n", (int)buff);
 	ret = tp_eng_fun_print_go(ptp_eng, buff);
 	if (ret)
 	{

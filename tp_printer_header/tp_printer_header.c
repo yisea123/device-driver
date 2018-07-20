@@ -66,6 +66,8 @@ static int tp_ph_write_line(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, un
 	struct spi_message msg;
 	struct spi_device *spi;
 	struct tp_ph_period_config_t * pperiod_config;
+	int offset = 0;
+	int line_size = 0;
 	
 	spi = ptp_ph_dev->spi;
 	pperiod_config = &ptp_ph->config_data.period_config;
@@ -81,9 +83,12 @@ static int tp_ph_write_line(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, un
 	{
 		ptp_ph->data_size = data_size;
 	}
-	memcpy(ptp_ph->buffer, pbuffer, ptp_ph->data_size);
+	line_size = ptp_ph->config_data.dots_in_a_line/8;
+	offset = line_size - ptp_ph->data_size;
+	memset(ptp_ph->buffer, 0, line_size);
+	memcpy(ptp_ph->buffer + offset, pbuffer, ptp_ph->data_size);
 	memset(&xfer, 0, sizeof(xfer));
-	xfer.len = ptp_ph->data_size;//ptp_ph->config_data.dots_in_a_line/8;
+	xfer.len = line_size;//ptp_ph->data_size;//ptp_ph->config_data.dots_in_a_line/8;
 	xfer.speed_hz = ptp_ph->config_data.period_config.clock_freq_hz;
 	xfer.tx_buf = ptp_ph->buffer;
 	xfer.rx_buf = NULL;
