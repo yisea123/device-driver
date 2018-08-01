@@ -17,9 +17,11 @@
 #define SPEED_4		1500
 #define SPEED_5		1650
 #define SPEED_6		1800
-#define SPEED_7		2254
+#define SPEED_7		2200
 #define SPEED_8		2400
 #define SPEED_9		2800
+#define SPEED_10	3200
+#define SPEED_11	4000
 
 #define SPEED_PRINTING	SPEED_2
 #define SPEED_PAP_IN	SPEED_8

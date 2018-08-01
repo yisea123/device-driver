@@ -98,7 +98,6 @@ EXPORT_SYMBOL_GPL(tp_eng_pap_motor_stop);
 void tp_eng_pap_motor_stop_after_steps(struct pap_motor_data_t * ppap_motor_data, unsigned int steps)
 {
 	steppermotor_stop_after_steps(ppap_motor_data->pstepmotor, steps);
-	complete_all(&(ppap_motor_data->motor_completion));
 }
 EXPORT_SYMBOL_GPL(tp_eng_pap_motor_stop_after_steps);
 

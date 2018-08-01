@@ -23,8 +23,14 @@
 #include <../arch/arm/mach-imx/hardware.h>
 #include <linux/delay.h>
 
+#include <linux/pwm.h>
+#include <linux/iio/iio.h>
+#include <linux/iio/types.h>
+#include <linux/iio/consumer.h>
+
 #include "tp_printer_header.h"
 #include "printer_header_common.h"
+#include "../tp_engine/tp_engine_sensor.h"
 
 #define STROBE_GPIO_NUM_MAX		4
 #define GPIO_VALUE_HIGH 		1
@@ -52,6 +58,7 @@ struct tp_ph_dev_t
 {
 	struct tp_ph_t tp_ph;
 	struct spi_device *spi;		//printer header spi for write dot data
+	struct sensor_dev *sensordev;
 	int lat_gpio;
 	int stb_gpio[STROBE_GPIO_NUM_MAX];
 	int en_24v_gpio;
@@ -149,8 +156,6 @@ static int tp_ph_gpio_init_from_dts(struct device * dev, struct tp_ph_dev_t * p_
 	if(ret)
 		return ret;
 	
-//	
-	
 	p_tp_ph_dev->en_24v_gpio = of_get_named_gpio(np, "en-24v-gpio", 0);
 	if (!gpio_is_valid(p_tp_ph_dev->en_24v_gpio)) 
 	{
@@ -172,8 +177,6 @@ static int tp_ph_gpio_init_from_dts(struct device * dev, struct tp_ph_dev_t * p_
 	if(ret)
 		return ret;
 
-	
-//
 	for(i = 0; i < STROBE_GPIO_NUM_MAX; i++)
 	{
 		p_tp_ph_dev->stb_gpio[i] = of_get_named_gpio(np, str_stb[i], 0);
@@ -195,6 +198,7 @@ static int tp_ph_gpio_init_from_dts(struct device * dev, struct tp_ph_dev_t * p_
 __exit__:
 	return 0;
 }
+
 
 static int tp_ph_init(struct tp_ph_dev_t * ptp_ph_dev)
 {
@@ -240,6 +244,7 @@ const struct tp_ph_ops_t tp_ph_ops =
 static int tp_ph_probe(struct spi_device * spi)
 {
 	struct tp_ph_dev_t * tp_ph_dev;
+	struct sensor_dev *sensordev;
 	struct device_node * np = spi->dev.of_node;
 	int ret = 0;
 	unsigned short spi_mode = 0;

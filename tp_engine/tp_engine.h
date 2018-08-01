@@ -40,6 +40,7 @@
 #define TP_ENG_IOCTL_GET_ENG_CONFIG	(TP_ENG_CTRL_CMD+18)	//获得ENG配置
 #define TP_ENG_IOCTL_GET_PH_CONFIG	(TP_ENG_CTRL_CMD+19)	//获得打印头配置
 #define TP_ENG_IOCTL_SENSOR_LOGIC_ST	(TP_ENG_CTRL_CMD+20)	//获得打印机状态信息
+#define TP_ENG_IOCTL_RESISTOR_VAL	(TP_ENG_CTRL_CMD+21)	//获得打印头温度
 
 typedef enum
 {

@@ -77,7 +77,6 @@ static void tp_eng_fun_pap_in_callback(struct pap_motor_data_t *ppap_motor_data,
 	{
 		if (ptp_eng->eng_state.pap_motor_state == PAP_MOTOR_STATE_IN)
 		{
-			printk(KERN_DEBUG "tp_eng_fun_pap_in_callback stop after %d.\n", PAP_IN_STOP_AFTER_STEPS);
 			ptp_eng->eng_state.pap_motor_state = PAP_MOTOR_STATE_STOP;
 			tp_eng_pap_motor_stop_after_steps(ptp_eng->ppap_motor_data, PAP_IN_STOP_AFTER_STEPS);
 		}
@@ -599,10 +598,10 @@ int tp_eng_fun_sensor_update(struct tp_engine_t * ptp_eng)
 	{
 		ptp_eng->tp_eng_sen_st.mac_close = 0;
 	}
-	//if(tp_eng_ph_resistor_get_val(ptp_eng->pph_resistor_data, &ptp_eng->tp_eng_sen_st.ph_resistor_val))
-	//{
-	//	return -1;
-	//}
+	if(tp_engine_resister_get_refval(ptp_eng, &sen_st))
+	{
+		return -1;
+	}
 	return 0;
 }
 EXPORT_SYMBOL_GPL(tp_eng_fun_sensor_update);
@@ -648,24 +647,12 @@ static void tp_eng_fun_update_sensor_wq(struct work_struct * work)
 			ptp_eng->tp_eng_sen_st.ribbon_exsit = 0;
 		}
 	}
-
-/*	rs = tp_engine_get_sensor_statu(ptp_eng, &st, SEN_ST_RIBBON_BROKEN);
-	if (rs)
+	
+	if(tp_engine_resister_get_refval(ptp_eng, &st))
 	{
-		printk("tp_engine_get_sensor_statu error.\n");
+		return;
 	}
-	else
-	{
-		if (st > 0)
-		{
-			ptp_eng->tp_eng_sen_st.ribbon_broken = 1;
-		}
-		else
-		{
-			ptp_eng->tp_eng_sen_st.ribbon_broken = 0;
-		}
-	}
-*/
+	//printk("tp_engine_resister_get_refval %d\n",st);
 
 }
 
@@ -738,7 +725,7 @@ static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 					{
 						printk(KERN_DEBUG "tp_eng_fun_print_go_callback ribbon_broken_black.\n");
 						printk(KERN_DEBUG "ptp_eng->ribbon_info_st.ribbon_broken_white is %d.\n", ptp_eng->ribbon_info_st.ribbon_broken_white);
-						printk(KERN_DEBUG "ptp_eng->ribbon_info_st.ribbon_broken_black is %d.\n", ptp_eng->ribbon_info_st.ribbon_broken_black);
+						printk(KERN_DEBUG "pttp_engine_get_sensor_statup_eng->ribbon_info_st.ribbon_broken_black is %d.\n", ptp_eng->ribbon_info_st.ribbon_broken_black);
 						ptp_eng->tp_eng_sen_st.ribbon_broken = 1;
 						ptp_eng->eng_state.pap_motor_state = PAP_MOTOR_STATE_STOP;
 						tp_eng_pap_motor_stop(ptp_eng->ppap_motor_data);

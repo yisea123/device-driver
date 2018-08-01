@@ -625,6 +625,23 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				}
 			}
 			break;
+		case TP_ENG_IOCTL_RESISTOR_VAL:
+			{
+				unsigned long resistor_val;
+				ret = tp_engine_resister_get_refval(&ptp_eng_dev->tp_engine, &resistor_val);
+				if (ret < 0)
+				{
+					ret = -EFAULT;
+					goto __exit__;
+				}
+				if (copy_to_user((void __user *)argp, &resistor_val, sizeof(unsigned long)))
+				{
+					printk(KERN_NOTICE "tp_engine_ioctl TP_ENG_IOCTL_RESISTOR_VAL: copy_from_user fail\n");
+					ret = -EFAULT;
+					goto __exit__;
+				}
+			}
+			break;
 		case TP_ENG_IOCTL_GET_SEN_VAL:
 			{
 				unsigned int val[20],i;
@@ -644,12 +661,12 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 					ret = -EFAULT;
 					goto __exit__;
 				}
-				ret = tp_eng_ph_resistor_get_val(ptp_eng_dev->tp_engine.pph_resistor_data, &resistor_val);
-				if (ret < 0)
-				{
-					ret = -EFAULT;
-					goto __exit__;
-				}
+//				ret = tp_eng_ph_resistor_get_val(ptp_eng_dev->tp_engine.pph_resistor_data, &resistor_val);
+//				if (ret < 0)
+//				{
+//					ret = -EFAULT;
+//					goto __exit__;
+//				}
 			}
 			break;
 		case TP_ENG_IOCTL_SENSOR_ENABLE:
@@ -664,10 +681,12 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				if (enable)
 				{
 					ret = tp_engine_sensor_enable_all(&ptp_eng_dev->tp_engine, enable);
+					ret = tp_engine_resister_enable(&ptp_eng_dev->tp_engine, enable);
 				}
 				else
 				{
 					ret = tp_engine_sensor_enable_all(&ptp_eng_dev->tp_engine, enable);
+					ret = tp_engine_resister_enable(&ptp_eng_dev->tp_engine, enable);
 				}
 			}
 			break;
@@ -684,6 +703,12 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 					goto __exit__;
 				}
 				ret = tp_engine_sensor_set_config(&(ptp_eng_dev->tp_engine), &sen_conf);
+				if (ret < 0)
+				{
+					ret = -EFAULT;
+					goto __exit__;
+				}
+				ret = tp_engine_resister_set_config(&(ptp_eng_dev->tp_engine), &sen_conf);
 				if (ret < 0)
 				{
 					ret = -EFAULT;
