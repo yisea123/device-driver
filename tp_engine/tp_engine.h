@@ -19,6 +19,8 @@
 #define	TP_ENG_CTRL_CMD		_IO(TP_ENG_IOC_MAGIC , 0 )
 #endif
 
+#define RESISTOR			0
+
 /* ioctl command define */
 #define TP_ENG_IOCTL_INIT		(TP_ENG_CTRL_CMD+0)	//初始化
 #define TP_ENG_IOCTL_RESET		(TP_ENG_CTRL_CMD+1)	//复位

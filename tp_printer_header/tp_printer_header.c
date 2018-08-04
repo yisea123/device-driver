@@ -23,14 +23,8 @@
 #include <../arch/arm/mach-imx/hardware.h>
 #include <linux/delay.h>
 
-#include <linux/pwm.h>
-#include <linux/iio/iio.h>
-#include <linux/iio/types.h>
-#include <linux/iio/consumer.h>
-
 #include "tp_printer_header.h"
 #include "printer_header_common.h"
-#include "../tp_engine/tp_engine_sensor.h"
 
 #define STROBE_GPIO_NUM_MAX		4
 #define GPIO_VALUE_HIGH 		1
@@ -58,7 +52,6 @@ struct tp_ph_dev_t
 {
 	struct tp_ph_t tp_ph;
 	struct spi_device *spi;		//printer header spi for write dot data
-	struct sensor_dev *sensordev;
 	int lat_gpio;
 	int stb_gpio[STROBE_GPIO_NUM_MAX];
 	int en_24v_gpio;
@@ -244,7 +237,7 @@ const struct tp_ph_ops_t tp_ph_ops =
 static int tp_ph_probe(struct spi_device * spi)
 {
 	struct tp_ph_dev_t * tp_ph_dev;
-	struct sensor_dev *sensordev;
+
 	struct device_node * np = spi->dev.of_node;
 	int ret = 0;
 	unsigned short spi_mode = 0;

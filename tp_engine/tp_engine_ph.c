@@ -31,6 +31,7 @@ int tp_eng_ph_write_line(struct ph_data_t * pph_data, unsigned char * buff, unsi
 }
 EXPORT_SYMBOL_GPL(tp_eng_ph_write_line);
 
+#if RESISTOR
 //set sensor config
 int tp_engine_resister_set_config(struct tp_engine_t *ptp_engine, tp_engine_sen_config_t *p_sen_config )
 {
@@ -66,7 +67,7 @@ int tp_engine_resister_get_refval(struct tp_engine_t *ptp_engine, unsigned int *
 	struct ph_resistor_data_t * pph_resistor_data;
 	int ret=0;
 	unsigned long *tmp;
-	
+
 	tmp = (unsigned long *)val;
 	pph_resistor_data = ptp_engine->pph_resistor_data;
 	ret = photosensor_read_input(pph_resistor_data->ph_r_dev.pphotosensor, tmp);
@@ -96,6 +97,7 @@ int tp_engine_resister_enable(struct tp_engine_t *ptp_engine, unsigned char enab
 }
 EXPORT_SYMBOL_GPL(tp_engine_resister_enable);
 
+#endif
 //int tp_eng_ph_resistor_get_val(struct ph_resistor_data_t * pph_resistor_data, unsigned long * pval)
 //{
 //	struct photosensor *psen;
