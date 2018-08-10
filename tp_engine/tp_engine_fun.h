@@ -25,5 +25,7 @@ int tp_engine_get_eng_config(struct tp_engine_t *ptp_engine, struct tp_engine_co
 
 int tp_engine_get_ph_config(struct tp_engine_t *ptp_engine, struct tp_ph_config_t *pconfig_data);
 
+void update_sensor_do_timer(unsigned long arg);
+
 #endif
 

@@ -9,6 +9,8 @@
 #ifndef __TP_ENGINE_H__
 #define __TP_ENGINE_H__
 
+#include <linux/timer.h>
+
 #define TP_ENGINE_NAME_MAX_SIZE		32
 
 #define TP_ENG_IOC_MAGIC        0xef
@@ -192,7 +194,13 @@ struct tp_engine_t
 	int sensor_num;					//engine中传感器数量
 	unsigned int sensor_masks;			//engine中多个传感器masks
 	struct sensor_data_t * psensor_data;		//engine中传感器数据指针
-
+	
+	struct workqueue_struct * print_go_workqueue;
+	struct workqueue_struct * update_sensor_workqueue;
+	struct work_struct update_sensor_work;
+	struct work_struct print_go_work;
+	
+//	struct timer_list update_sensor_timer;			//用于更新传感器的定时器
 };
 
 

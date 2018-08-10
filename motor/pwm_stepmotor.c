@@ -151,7 +151,7 @@ static void pwm_stepmotor_stop_after_steps(struct steppermotor *motor, unsigned 
 	motor->status &= ~STEPPERMOTOR_RUNNING;
 	spin_lock_irqsave(&p_running_info->running_info_lock, irq_flags);
 	printk(KERN_DEBUG "pwm_stepmotor stop after %d, cur step is %d.\n", step, p_running_info->step_lose);
-	p_running_info->step_left = step;
+	p_running_info->step_left = step * motordev->stepping;
 	spin_unlock_irqrestore(&p_running_info->running_info_lock, irq_flags);
 }
 

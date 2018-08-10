@@ -21,6 +21,7 @@
 #include <linux/platform_device.h>
 #include <linux/completion.h>
 #include <linux/slab.h>
+#include <linux/timer.h>
 
 #include "tp_engine_ph.h"
 #include "tp_engine_pap_motor.h"
@@ -169,6 +170,8 @@ static int tp_engine_devicetree_pap_motor_parse(struct device_node *pnode, struc
 		printk(KERN_ERR "ERROR %s ==> %d\n", __FUNCTION__, __LINE__);
 		return -EPROBE_DEFER;
 	}
+	pmotor_data->step_mode = 2;
+	pmotor_data->step_cur_phase = 0;
 	return 0;
 }
 
@@ -649,7 +652,9 @@ static long tp_engine_ioctl(struct file *filep, unsigned int ioctrl_cmd, unsigne
 				unsigned int val[20],i;
 				unsigned int size = 0;
 				unsigned int *tmp;
+#if RESISTOR
 				unsigned long resistor_val;
+#endif
 				ret = tp_engine_sensor_get_refval(&ptp_eng_dev->tp_engine, val);
 				size = ptp_eng_dev->tp_engine.sensor_num;
 				tmp = val;
@@ -819,7 +824,21 @@ int tp_engine_probe(struct platform_device * pdev)
 		unregister_chrdev_region(ptp_engine_dev->dev_no, 1);
 		goto __exit__;
 	}
-	
+	ptp_engine_dev->tp_engine.print_go_workqueue = alloc_workqueue("print_go_wq", (WQ_HIGHPRI | WQ_CPU_INTENSIVE | WQ_UNBOUND), 1); //create_workqueue("print_go_wq");
+	if (!ptp_engine_dev->tp_engine.print_go_workqueue)
+	{
+		panic("Failed to create print_go_workqueue\n");
+	}
+	ptp_engine_dev->tp_engine.update_sensor_workqueue = alloc_workqueue("update_sensor_workqueue", (WQ_HIGHPRI | WQ_CPU_INTENSIVE | WQ_UNBOUND), 0);
+	if (!ptp_engine_dev->tp_engine.update_sensor_workqueue)
+	{
+		panic("Failed to create update_sensor_workqueue\n");
+	}
+
+//	init_timer(&ptp_engine_dev->tp_engine.update_sensor_timer);
+//	ptp_engine_dev->tp_engine.update_sensor_timer.function = update_sensor_do_timer;
+//	ptp_engine_dev->tp_engine.update_sensor_timer.data = (unsigned long)&ptp_engine_dev->tp_engine;
+//	ptp_engine_dev->tp_engine.update_sensor_timer.expires =  jiffies + msecs_to_jiffies(6);
 __exit__:
 	return ret;
 }
@@ -831,6 +850,14 @@ int tp_engine_remove(struct platform_device *pdev)
 	struct tp_engine_dev_t *ptp_engine_dev = platform_get_drvdata(pdev);
 
 	printk(KERN_DEBUG "tp_engine Driver - exit\n");
+	if (ptp_engine_dev->tp_engine.print_go_workqueue)
+	{
+		destroy_workqueue(ptp_engine_dev->tp_engine.print_go_workqueue);
+	}
+//	if(ptp_engine_dev->tp_engine.update_sensor_workqueue)
+//	{
+//		destroy_workqueue(ptp_engine_dev->tp_engine.update_sensor_workqueue);
+//	}
 	device_destroy(ptp_engine_dev->tp_eng_class, ptp_engine_dev->dev_no);
 	class_destroy(ptp_engine_dev->tp_eng_class);
 	cdev_del(&ptp_engine_dev->cdev);

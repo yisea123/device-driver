@@ -66,11 +66,11 @@ int tp_engine_resister_get_refval(struct tp_engine_t *ptp_engine, unsigned int *
 {
 	struct ph_resistor_data_t * pph_resistor_data;
 	int ret=0;
-	unsigned long *tmp;
+	unsigned long tmp;
 
-	tmp = (unsigned long *)val;
 	pph_resistor_data = ptp_engine->pph_resistor_data;
-	ret = photosensor_read_input(pph_resistor_data->ph_r_dev.pphotosensor, tmp);
+	ret = photosensor_read_input(pph_resistor_data->ph_r_dev.pphotosensor, &tmp);
+	*val = (unsigned int)tmp;
 
 	return ret;
 }

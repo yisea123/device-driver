@@ -22,6 +22,8 @@ struct pap_motor_data_t
 	struct steppermotor_config step_conf;		//步进电机配置
 
 	unsigned int moving_status;			//当前运动状态
+	unsigned char step_mode;			//电机运动模式微分1,2,4,8,32
+	unsigned int step_cur_phase;			//当前跑到哪个相位
 
 	struct completion motor_completion;		//电机运动完成，用于等待电机停止
 	

@@ -13,16 +13,18 @@ int tp_engine_sensor_get_refval(struct tp_engine_t *ptp_engine, unsigned int *va
 	struct sensor_data_t *psensor_data;
 	unsigned int i;
 	int ret=0;
-	unsigned long *tmp;
+	unsigned long tmp;
+	unsigned int * p_val;
 	
-	tmp = (unsigned long *)val;
+	p_val = val;
 	psensor_data = ptp_engine->psensor_data;
 	for (i = 0; i < ptp_engine->sensor_num; i++)
 	{
-		ret = photosensor_read_input(psensor_data->sen_dev.pphotosensor, tmp);
+		ret = photosensor_read_input(psensor_data->sen_dev.pphotosensor, &tmp);
 //		printk("psensor_data[%d] val[%d] is %ld\n",i,i,*tmp);
 		psensor_data++;
-		tmp++;
+		*p_val = (unsigned int)tmp;
+		p_val++;
 	}
 	return ret;
 }
@@ -144,6 +146,10 @@ int tp_engine_get_sensor_statu(struct tp_engine_t *ptp_engine, unsigned int *pst
 	{
 		if (psensor_data[i].sen_mask == mask)
 		{
+			if (&psensor_data[i] == NULL)
+			{
+				printk("&psensor_data[i] == NULL.\r\n");
+			}
 			ret =  photosensor_status(psensor_data[i].sen_dev.pphotosensor, &val);
 			if (ret < 0)
 			{
