@@ -718,7 +718,7 @@ static void tp_eng_fun_update_sensor_do_work(struct work_struct * work)
 
 }
 
-#define RIBBON_BROKEN_STEPS			1500
+#define RIBBON_BROKEN_STEPS			1200
 static void tp_eng_fun_print_go_do_work(struct work_struct * work)
 {
 	struct tp_engine_t * ptp_eng;

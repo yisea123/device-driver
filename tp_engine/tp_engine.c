@@ -854,10 +854,10 @@ int tp_engine_remove(struct platform_device *pdev)
 	{
 		destroy_workqueue(ptp_engine_dev->tp_engine.print_go_workqueue);
 	}
-//	if(ptp_engine_dev->tp_engine.update_sensor_workqueue)
-//	{
-//		destroy_workqueue(ptp_engine_dev->tp_engine.update_sensor_workqueue);
-//	}
+	if(ptp_engine_dev->tp_engine.update_sensor_workqueue)
+	{
+		destroy_workqueue(ptp_engine_dev->tp_engine.update_sensor_workqueue);
+	}
 	device_destroy(ptp_engine_dev->tp_eng_class, ptp_engine_dev->dev_no);
 	class_destroy(ptp_engine_dev->tp_eng_class);
 	cdev_del(&ptp_engine_dev->cdev);
