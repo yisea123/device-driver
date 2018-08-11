@@ -30,7 +30,7 @@
 #define GPIO_VALUE_HIGH 		1
 #define GPIO_VALUE_LOW  		0
 
-#define TP_PH_TIME_OF_HEATING_DEF	250		//us,默认加热时间
+#define TP_PH_TIME_OF_HEATING_DEF	300		//us,默认加热时间
 #define TP_PH_DOT_IN_LINE		1280		//一行点数
 #define TP_PH_BUFFER_SIZE		(1280/8)	//点数据缓冲区
 #define TP_PH_FREQ_HZ			16000000	//Hz
