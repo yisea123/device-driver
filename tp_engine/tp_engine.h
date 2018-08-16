@@ -196,8 +196,6 @@ struct tp_engine_t
 	struct sensor_data_t * psensor_data;		//engine中传感器数据指针
 	
 	struct workqueue_struct * print_go_workqueue;
-	struct workqueue_struct * update_sensor_workqueue;
-	struct work_struct update_sensor_work;
 	struct work_struct print_go_work;
 	
 //	struct timer_list update_sensor_timer;			//用于更新传感器的定时器

@@ -829,11 +829,6 @@ int tp_engine_probe(struct platform_device * pdev)
 	{
 		panic("Failed to create print_go_workqueue\n");
 	}
-	ptp_engine_dev->tp_engine.update_sensor_workqueue = alloc_workqueue("update_sensor_workqueue", (WQ_HIGHPRI | WQ_CPU_INTENSIVE | WQ_UNBOUND), 0);
-	if (!ptp_engine_dev->tp_engine.update_sensor_workqueue)
-	{
-		panic("Failed to create update_sensor_workqueue\n");
-	}
 
 //	init_timer(&ptp_engine_dev->tp_engine.update_sensor_timer);
 //	ptp_engine_dev->tp_engine.update_sensor_timer.function = update_sensor_do_timer;
@@ -853,10 +848,6 @@ int tp_engine_remove(struct platform_device *pdev)
 	if (ptp_engine_dev->tp_engine.print_go_workqueue)
 	{
 		destroy_workqueue(ptp_engine_dev->tp_engine.print_go_workqueue);
-	}
-	if(ptp_engine_dev->tp_engine.update_sensor_workqueue)
-	{
-		destroy_workqueue(ptp_engine_dev->tp_engine.update_sensor_workqueue);
 	}
 	device_destroy(ptp_engine_dev->tp_eng_class, ptp_engine_dev->dev_no);
 	class_destroy(ptp_engine_dev->tp_eng_class);
