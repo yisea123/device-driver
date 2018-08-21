@@ -830,10 +830,6 @@ int tp_engine_probe(struct platform_device * pdev)
 		panic("Failed to create print_go_workqueue\n");
 	}
 
-//	init_timer(&ptp_engine_dev->tp_engine.update_sensor_timer);
-//	ptp_engine_dev->tp_engine.update_sensor_timer.function = update_sensor_do_timer;
-//	ptp_engine_dev->tp_engine.update_sensor_timer.data = (unsigned long)&ptp_engine_dev->tp_engine;
-//	ptp_engine_dev->tp_engine.update_sensor_timer.expires =  jiffies + msecs_to_jiffies(6);
 __exit__:
 	return ret;
 }

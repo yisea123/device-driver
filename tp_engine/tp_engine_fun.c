@@ -48,26 +48,11 @@
 
 #define to_eng_dev(ptp_eng)	container_of(ptp_eng, struct tp_engine_dev_t, tp_engine)
 
-static struct tp_engine_t * ptp_eng_backup = NULL;
-static struct work_struct pap_in_wq;
-static void tp_eng_fun_pap_in_do_work(struct work_struct * work)
-{
-	if (ptp_eng_backup)
-	{
-		tp_eng_fun_sensor_update(ptp_eng_backup);
-	}
-}
-
 static void tp_eng_fun_pap_in_callback(struct pap_motor_data_t *ppap_motor_data, struct callback_data *pcallback_data)
 {
 	struct tp_engine_t * ptp_eng;
-	int step_lost = 0;
 
 	ptp_eng = (struct tp_engine_t *)pcallback_data->data1;
-	if (ptp_eng_backup != ptp_eng)
-	{
-		ptp_eng_backup = ptp_eng;
-	}
 	if (ptp_eng->ppap_motor_data->step_cur_phase % ptp_eng->ppap_motor_data->step_mode)	//当前不是０相位
 	{
 		ptp_eng->ppap_motor_data->step_cur_phase++;
@@ -79,11 +64,7 @@ static void tp_eng_fun_pap_in_callback(struct pap_motor_data_t *ppap_motor_data,
 		ptp_eng->ppap_motor_data->step_cur_phase++;
 		ptp_eng->ppap_motor_data->step_cur_phase = (ptp_eng->ppap_motor_data->step_cur_phase % ptp_eng->ppap_motor_data->step_mode);
 	}
-	step_lost = steppermotor_get_running_steps(ppap_motor_data->pstepmotor);
-	if ((step_lost % 2 == 0) && ((step_lost & STEP_MOTOR_STEPS_STOP_FLAG) == 0))
-	{
-		schedule_work(&pap_in_wq);
-	}
+	tp_eng_fun_sensor_update(ptp_eng);
 	if (ptp_eng->tp_eng_sen_st.pap_in)
 	{
 		if (ptp_eng->eng_state.pap_motor_state == PAP_MOTOR_STATE_IN)
@@ -158,7 +139,6 @@ int tp_eng_fun_pap_in(struct tp_engine_t * ptp_eng)
 	{
 		return ret;
 	}
-	INIT_WORK(&pap_in_wq, tp_eng_fun_pap_in_do_work);
 	ret = tp_eng_pap_motor_set_callback(ppap_motor_data, NULL, &clbk_data, tp_eng_fun_pap_in_callback, &clbk_data);
 	if (ret < 0)
 	{
@@ -179,25 +159,11 @@ int tp_eng_fun_pap_in(struct tp_engine_t * ptp_eng)
 }
 EXPORT_SYMBOL_GPL(tp_eng_fun_pap_in);
 
-static struct work_struct pap_out_wq;
-static void tp_eng_fun_pap_out_do_work(struct work_struct * work)
-{
-	if (ptp_eng_backup)
-	{
-		tp_eng_fun_sensor_update(ptp_eng_backup);
-	}
-}
-
 static void tp_eng_fun_pap_out_callback(struct pap_motor_data_t *ppap_motor_data, struct callback_data *pcallback_data)
 {
 	struct tp_engine_t * ptp_eng;
-	int step_lost = 0;
 
 	ptp_eng = (struct tp_engine_t *)pcallback_data->data1;
-	if (ptp_eng_backup != ptp_eng)
-	{
-		ptp_eng_backup = ptp_eng;
-	}
 	if (ptp_eng->ppap_motor_data->step_cur_phase % ptp_eng->ppap_motor_data->step_mode)	//当前不是０相位
 	{
 		ptp_eng->ppap_motor_data->step_cur_phase++;
@@ -209,11 +175,7 @@ static void tp_eng_fun_pap_out_callback(struct pap_motor_data_t *ppap_motor_data
 		ptp_eng->ppap_motor_data->step_cur_phase++;
 		ptp_eng->ppap_motor_data->step_cur_phase = (ptp_eng->ppap_motor_data->step_cur_phase % ptp_eng->ppap_motor_data->step_mode);
 	}
-	step_lost = steppermotor_get_running_steps(ppap_motor_data->pstepmotor);
-	if ((step_lost % 2 == 0) && ((step_lost & STEP_MOTOR_STEPS_STOP_FLAG) == 0))
-	{
-		schedule_work(&pap_out_wq);
-	}
+	tp_eng_fun_sensor_update(ptp_eng);
 	if ((!ptp_eng->tp_eng_sen_st.pap_out) && (!ptp_eng->tp_eng_sen_st.pap_in))
 	{
 		if (ptp_eng->eng_state.pap_motor_state == PAP_MOTOR_STATE_OUT)
@@ -269,7 +231,6 @@ int tp_eng_fun_pap_out(struct tp_engine_t * ptp_eng)
 	spd_info.steps = step;
 	spd_info.nextspeed = NULL;
 	tp_eng_pap_motor_config(ppap_motor_data, step, dir, 1, &spd_info);
-	INIT_WORK(&pap_out_wq, tp_eng_fun_pap_out_do_work);
 	tp_eng_pap_motor_set_callback(ppap_motor_data, NULL, &clbk_data, tp_eng_fun_pap_out_callback, &clbk_data);
 	ret = tp_eng_pap_motor_start(ppap_motor_data);
 	if (ret)
@@ -286,25 +247,12 @@ int tp_eng_fun_pap_out(struct tp_engine_t * ptp_eng)
 }
 EXPORT_SYMBOL_GPL(tp_eng_fun_pap_out);
 
-static struct work_struct pap_move_wq;
-static void tp_eng_fun_pap_move_do_work(struct work_struct * work)
-{
-	if (ptp_eng_backup)
-	{
-		tp_eng_fun_sensor_update(ptp_eng_backup);
-	}
-}
 
 static void tp_eng_fun_pap_move_callback(struct pap_motor_data_t *ppap_motor_data, struct callback_data *pcallback_data)
 {
 	struct tp_engine_t * ptp_eng;
-	int step_lost = 0;
 
 	ptp_eng = (struct tp_engine_t *)pcallback_data->data1;
-	if (ptp_eng_backup != ptp_eng)
-	{
-		ptp_eng_backup = ptp_eng;
-	}
 	if (ptp_eng->ppap_motor_data->step_cur_phase % ptp_eng->ppap_motor_data->step_mode)	//当前不是０相位
 	{
 		ptp_eng->ppap_motor_data->step_cur_phase++;
@@ -316,11 +264,7 @@ static void tp_eng_fun_pap_move_callback(struct pap_motor_data_t *ppap_motor_dat
 		ptp_eng->ppap_motor_data->step_cur_phase++;
 		ptp_eng->ppap_motor_data->step_cur_phase = (ptp_eng->ppap_motor_data->step_cur_phase % ptp_eng->ppap_motor_data->step_mode);
 	}
-	step_lost = steppermotor_get_running_steps(ppap_motor_data->pstepmotor);
-	if ((step_lost % 10 == 0) && ((step_lost & STEP_MOTOR_STEPS_STOP_FLAG) == 0))
-	{
-		schedule_work(&pap_out_wq);
-	}
+	tp_eng_fun_sensor_update(ptp_eng);
 	if (ptp_eng->tp_eng_sen_st.pap_in)
 	{
 		ptp_eng->pap_info_st.pap_length++;
@@ -392,7 +336,6 @@ int tp_eng_fun_pap_move(struct tp_engine_t * ptp_eng, int step)
 	{
 		return ret;
 	}
-	INIT_WORK(&pap_move_wq, tp_eng_fun_pap_move_do_work);
 	tp_eng_pap_motor_set_callback(ppap_motor_data, NULL, &clbk_data, tp_eng_fun_pap_move_callback, &clbk_data);
 	ret = tp_eng_pap_motor_start(ppap_motor_data);
 	if (ret)

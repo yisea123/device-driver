@@ -197,8 +197,6 @@ struct tp_engine_t
 	
 	struct workqueue_struct * print_go_workqueue;
 	struct work_struct print_go_work;
-	
-//	struct timer_list update_sensor_timer;			//用于更新传感器的定时器
 };
 
 

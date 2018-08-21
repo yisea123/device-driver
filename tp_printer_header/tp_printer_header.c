@@ -68,9 +68,19 @@ static int tp_ph_write_line(struct tp_ph_t * ptp_ph, unsigned char * pbuffer, un
 	struct tp_ph_period_config_t * pperiod_config;
 	int offset = 0;
 	int line_size = 0;
+	unsigned int buf_sum = 0;
 	
 	spi = ptp_ph_dev->spi;
 	pperiod_config = &ptp_ph->config_data.period_config;
+	//判断数据是否为空，为空则不打印直接退出
+	for(i = 0; i < data_size; i++)
+	{
+		buf_sum |= pbuffer[i];
+	}
+	if(buf_sum == 0)
+	{
+		return 0;
+	}
 	//data through, latch low
 	gpio_direction_output(ptp_ph_dev->lat_gpio, GPIO_VALUE_LOW);
 	udelay(pperiod_config->delay_after_latch_low);
