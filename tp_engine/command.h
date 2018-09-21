@@ -14,10 +14,11 @@
 #define SPEED_1200		1200
 #define SPEED_1350		1350
 #define SPEED_1500		1500
-
 #define SPEED_1800		1800
 #define SPEED_2100		2100
 #define SPEED_2400		2400
+#define SPEED_2700		2700
+#define SPEED_3000		3000
 
 
 #define SPEED_PRINTING	SPEED_1200
