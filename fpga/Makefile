@@ -1,7 +1,13 @@
 KDIR := ../../kernel_root
 PWD := $(shell pwd)
 # kernel modules
-obj-m := fpga_io.o fpga_debug_eim.o 
+
+ifeq ($(machine),mx6q_voucher_scanner)
+	obj-m := fpga_io.o fpga_debug_eim.o
+else ifeq ($(machine),mx6q_voucher_scanner_dual_recycle_boxes)
+	obj-m := fpga_io.o fpga_debug_eim.o fpgax_io.o fpgax_debug.o
+endif
+
 
 #specify flags for the module compilation
 EXTRA_CFLAGS=-g -O3 -march=armv7-a -mtune=cortex-a8 -mfpu=neon -ftree-vectorize -mfloat-abi=softfp -D CONFIG_FPGA_EIM -D CONFIG_REG_DOWNLOAD

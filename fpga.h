@@ -9,6 +9,10 @@
 
 #include <linux/bitops.h>
 
+typedef enum {
+	MOTION_EIM_INTERFACE,
+	MOTION_SPI_INTERFACE
+} motion_com;
 /* Section 1: FPGA control & information registers */
 /* memory map (offset): */
 #define FPGA_REG_CONTROL			0x0000

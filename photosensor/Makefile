@@ -2,12 +2,20 @@ KDIR := ../../kernel_root
 PWD := $(shell pwd)
 # kernel modules
 
-ifeq ($(machine),mx6q_voucher_scanner)
+ifeq ($(machine), mx6q_voucher_scanner)
 	obj-m := fpga_adc.o fpga_gpio.o fpga_pwm.o photosensor.o
-else ifeq ($(machine),mx6ul_voucher_dispenser)
+else ifeq ($(machine), mx6q_voucher_scanner_dual_recycle_boxes)
+	obj-m := fpga_adc.o fpgax_gpio.o fpgax_pwm.o xphotosensor.o
+else ifeq ($(machine), mx6ul_voucher_dispenser)
 	obj-m := photosensor.o
 	photosensor-objs := dispenser_photosensor.o
-else
+else ifeq ($(machine), mx6ul_thermal_printer)
+	obj-m := photosensor.o
+	photosensor-objs := dispenser_photosensor.o
+else ifeq ($(machine), mx6ul_voucher_dispenser_move_box)
+	obj-m := photosensor.o
+	photosensor-objs := dispenser_photosensor.o
+else ifeq ($(machine), mx6ul_voucher_dispenser_paper_pattern)
 	obj-m := photosensor.o
 	photosensor-objs := dispenser_photosensor.o
 endif
