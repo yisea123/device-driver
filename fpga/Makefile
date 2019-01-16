@@ -6,6 +6,8 @@ ifeq ($(machine),mx6q_voucher_scanner)
 	obj-m := fpga_io.o fpga_debug_eim.o
 else ifeq ($(machine),mx6q_voucher_scanner_dual_recycle_boxes)
 	obj-m := fpga_io.o fpga_debug_eim.o fpgax_io.o fpgax_debug.o
+else ifeq ($(machine),mx6q_voucher_scanner_printer)
+	obj-m := fpga_io.o fpga_debug_eim.o
 endif
 
 
