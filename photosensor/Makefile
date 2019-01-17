@@ -10,6 +10,8 @@ else ifeq ($(machine), mx6q_voucher_scanner_paper_pattern)
 	obj-m := fpga_adc.o fpga_gpio.o fpga_pwm.o photosensor.o
 else ifeq ($(machine), mx6q_voucher_scanner_dual_recycle_boxes)
 	obj-m := fpga_adc.o fpgax_gpio.o fpgax_pwm.o xphotosensor.o
+else ifeq ($(machine), mx6q_voucher_scanner_dual_recycle_boxes_printer)
+	obj-m := fpga_adc.o fpgax_gpio.o fpgax_pwm.o xphotosensor.o
 else ifeq ($(machine), mx6ul_voucher_dispenser)
 	obj-m := photosensor.o
 	photosensor-objs := dispenser_photosensor.o

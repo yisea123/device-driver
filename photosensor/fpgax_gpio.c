@@ -54,9 +54,8 @@ static int fpga_gpio_probe(struct platform_device *pdev)
 {
 	struct fpga_gpio_chip *fpgagpio;
 	struct device_node *np = pdev->dev.of_node;
-	int ret = 0;
+	int ret = 0,gpio_num;
 	u32 fpga_cs, reg[3];
-
 
 	fpgagpio = devm_kzalloc(&pdev->dev, sizeof(*fpgagpio), GFP_KERNEL);
 	if (fpgagpio == NULL)
@@ -72,7 +71,10 @@ static int fpga_gpio_probe(struct platform_device *pdev)
 	if (IS_ERR(fpgagpio->mmio_base))
 		return PTR_ERR(fpgagpio->mmio_base);
 
-	fpgagpio->chip.ngpio = 10;
+	gpio_num = 0;
+	ret = of_property_read_u32(np, "gpio-num", &gpio_num);
+
+	fpgagpio->chip.ngpio = gpio_num;
 	fpgagpio->chip.base = -1;
 	fpgagpio->chip.get = fpga_gpio_get;
 	fpgagpio->chip.direction_input = fpga_gpio_direction_input;
