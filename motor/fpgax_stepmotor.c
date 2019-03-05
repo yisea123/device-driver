@@ -34,7 +34,7 @@ static inline int _fpga_stepmotor_status(struct steppermotor *motor);
 #define SPEED_TO_COUNT(speed,stepping,clock)	(((1000000000L / (speed)) / (stepping)) / (clock))
 
 
-#define TRIGGER_NEXT_CTRL_MASK	(FPGA_REG_MOTOR_STOP_AT_TRGSTEP_END | FPGA_REG_MOTOR_SENSOR_CHECK_MODE | FPGA_REG_MOTOR_SENSER_STOP_ENABLE|FPGA_REG_MOTOR_SENSER_CONTINUE_MODE|FPGA_REG_MOTOR_SENSER_STOP_MODE|FPGA_REG_MOTOR_EN_SKEW_STEPS)
+#define TRIGGER_NEXT_CTRL_MASK	(FPGA_REG_MOTOR_STOP_AT_TRGSTEP_END | FPGA_REG_MOTOR_SENSOR_CHECK_MODE | FPGA_REG_MOTOR_SENSER_STOP_ENABLE|FPGA_REG_MOTOR_SENSER_CONTINUE_MODE|FPGA_REG_MOTOR_SENSER_STOP_MODE|FPGA_REG_MOTOR_EN_SKEW_STEPS|FPGA_REG_MOTOR_HOLD)
 
 #define MOTOR_TABLE_RAMP_LIMIT		(motordev->ram_base + FPGA_RAM_MOTOR_TABLE_RAMP + FPGA_RAM_MOTOR_TABLE_RAMP_SIZE)
 #define MOTOR_TABLE_COUNT_LIMIT		(motordev->ram_base + FPGA_RAM_MOTOR_TABLE_COUNT + FPGA_RAM_MOTOR_TABLE_COUNT_SIZE)
@@ -106,6 +106,34 @@ static void fpga_stepmotor_stop(struct steppermotor *motor)
 
 }
 
+static void fpga_stepmotor_lock(struct steppermotor *motor)
+{
+	struct motor_dev *motordev = to_motor_dev(motor);
+
+	if (!motor)
+		return;
+
+       if (motordev->cominterface == MOTION_EIM_INTERFACE) {
+            fpga_update_lbits(motordev->mmio_base + FPGA_REG_MOTOR_CONTROL, FPGA_REG_MOTOR_RUN|FPGA_REG_MOTOR_HOLD, FPGA_REG_MOTOR_HOLD);
+        }
+        else if (motordev->cominterface == MOTION_SPI_INTERFACE) {
+            fpgax_update_lbits(motordev->mmio_base + FPGA_REG_MOTOR_CONTROL, FPGA_REG_MOTOR_RUN|FPGA_REG_MOTOR_HOLD, FPGA_REG_MOTOR_HOLD);
+        }
+}
+
+static void fpga_stepmotor_unlock(struct steppermotor *motor)
+{
+	struct motor_dev *motordev = to_motor_dev(motor);
+
+	if (!motor)
+		return;
+        if (motordev->cominterface == MOTION_EIM_INTERFACE) {
+            fpga_update_lbits(motordev->mmio_base + FPGA_REG_MOTOR_CONTROL, FPGA_REG_MOTOR_RUN|FPGA_REG_MOTOR_HOLD, 0);
+        }
+        else if (motordev->cominterface == MOTION_SPI_INTERFACE) {
+            fpgax_update_lbits(motordev->mmio_base + FPGA_REG_MOTOR_CONTROL, FPGA_REG_MOTOR_RUN|FPGA_REG_MOTOR_HOLD, 0);
+        }
+}
 
 static void fpga_stepmotor_emergencybrake(struct steppermotor *motor)
 {
@@ -575,6 +603,8 @@ static int fpga_stepmotor_set_trigger_next(struct steppermotor *motor, const str
 		val |= FPGA_REG_MOTOR_SENSER_STOP_MODE;
 	if (trigger->control_set_en_skew_steps) 
 		val |= FPGA_REG_MOTOR_EN_SKEW_STEPS;
+	if (trigger->control_set_motor_en_hold) 
+		val |= FPGA_REG_MOTOR_HOLD;
 
         if (motordev->cominterface == MOTION_EIM_INTERFACE) {
             rs = fpga_update_lbits(motordev->mmio_base + FPGA_REG_MOTOR_CONTROL, TRIGGER_NEXT_CTRL_MASK, val);
@@ -657,6 +687,8 @@ static struct steppermotor_ops fpga_stepmotor_ops = {
 	.status = fpga_stepmotor_status,
 	.start = fpga_stepmotor_start,
 	.stop = fpga_stepmotor_stop,
+	.lock = fpga_stepmotor_lock,
+	.unlock = fpga_stepmotor_unlock,
 	.emergencybrake = fpga_stepmotor_emergencybrake,
 	.get_running_steps = fpga_stepmotor_get_running_steps,
 	.get_medialength_in_steps = fpga_stepmotor_get_medialength_in_steps,

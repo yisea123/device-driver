@@ -126,6 +126,7 @@ struct steppermotor_trigger{
 	int control_set_sensor_continue_mode : 1;
 	int control_set_sensor_stop_mode : 1;
 	int control_set_en_skew_steps : 1;
+	int control_set_motor_en_hold:1;
 	int steps;
 };
 

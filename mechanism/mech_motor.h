@@ -120,6 +120,7 @@ static inline  int step_motor_triger_deal(struct motor_data *pmotor_data, char t
 	motor_trigger.control_set_sensor_continue_mode = motor_trigger_phase->motor_triger_flag.motor_sensor_continue_mode;
 	motor_trigger.control_set_sensor_stop_mode = motor_trigger_phase->motor_triger_flag.motor_sensor_stop_mode;
 	motor_trigger.control_set_en_skew_steps = motor_trigger_phase->motor_triger_flag.motor_en_skew_steps;
+	motor_trigger.control_set_motor_en_hold = motor_trigger_phase->motor_triger_flag.motor_en_hold; 
 
 	if(motor_trigger_phase->sen_mask)
 	{
