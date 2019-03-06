@@ -26,7 +26,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 
 	motor_trigger_phase_t *motor_trigger_phase;
 
-	printk(KERN_DEBUG "step_motor_start.................speed_phase_num=%d\n", pmotor_mov->speed_phase_num);
+	//printk(KERN_DEBUG "step_motor_start.................speed_phase_num=%d\n", pmotor_mov->speed_phase_num);
 	if ((pmotor_mov->speed_phase_num > STEPSPEED_PHASE_NUM) || (pmotor_mov->trigger_phase_num > STEPSPEED_PHASE_NUM)) {
 		return -RESN_MECH_ERR_IVALID_CMD;
 	}
@@ -601,8 +601,7 @@ int motor_lock(mechanism_uint_motor_data_t *punit_motor_data, unsigned short mot
 	if (i==punit_motor_data->motor_num) {
 		return -RESN_MECH_ERR_MOTOR_GETDATA;
 	}
-    	
-	switch(pmotor_data->motor_type)
+ 	switch(pmotor_data->motor_type)
 	{
 	case MOTOR_STEP_TYPE:
 		steppermotor_lock(pmotor_data->motor_dev.psteppermotor); 
@@ -612,6 +611,7 @@ int motor_lock(mechanism_uint_motor_data_t *punit_motor_data, unsigned short mot
 	default:
 		break;
 	}
+	printk("motor_lock4\n\r");
 	return ret;
 }
 EXPORT_SYMBOL_GPL(motor_lock);
@@ -627,7 +627,6 @@ int motor_unlock(mechanism_uint_motor_data_t *punit_motor_data, unsigned short m
 	if (i==punit_motor_data->motor_num) {
 		return -RESN_MECH_ERR_MOTOR_GETDATA;
 	}
-    	
 	switch(pmotor_data->motor_type)
 	{
 	case MOTOR_STEP_TYPE:

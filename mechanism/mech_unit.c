@@ -755,6 +755,7 @@ static	int	mech_lock(struct mechanism_dev_t * mech_dev, class_cmd *cptr)
 	mech_control_t *pmech_control= (mech_control_t *)(cptr->argptr);
 	unsigned short motor_mask = (unsigned short)pmech_control->buffer;
 
+	printk("mech_lock\n\r");
 	ret = motor_lock(&mech_dev->mech_unit_data.unit_motor_data, motor_mask); 
 	return ret;
 }
@@ -765,6 +766,7 @@ static	int	mech_unlock(struct mechanism_dev_t * mech_dev, class_cmd *cptr)
 	mech_control_t *pmech_control= (mech_control_t *)(cptr->argptr);
 	unsigned short motor_mask = (unsigned short)pmech_control->buffer;
 
+	printk("mech_unlock\n\r");
 	ret = motor_unlock(&mech_dev->mech_unit_data.unit_motor_data, motor_mask); 
 	return ret;
 }
@@ -1023,7 +1025,7 @@ static long mechunit_ioctl( struct file *filep, unsigned int ioctrl_cmd, unsigne
 		ret = mechunit_library[mech_ctrl.cmd](mech_dev, &classcmd);
 		if (ret)
 		{
-			printk(KERN_ERR "mechunit_ioctl MECH_CONTROL_CMD: libfun fail\n");
+			printk(KERN_ERR "mechunit_ioctl MECH_CONTROL_CMD: libfun fail ret=%x\n", ret);
 			goto mechunit_ioctl_ret;
 		}
 		break;

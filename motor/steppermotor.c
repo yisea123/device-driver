@@ -290,6 +290,7 @@ int steppermotor_check_config(struct steppermotor *motor, const struct steppermo
 	if (config->steps_to_run <= 0 || config->steps_to_run > motor->feature.max_steps || config->num_speed <= 0) 
 	{
 		dev_err(motor->dev, "steppermotor_check_config error:steps %d %d or num_speed %d\n", config->steps_to_run, motor->feature.max_steps, config->num_speed);
+		printk("vee:\t\t[%s]->[%d] steps %d %d or num_speed %d\n\n", __FUNCTION__, __LINE__, config->steps_to_run, motor->feature.max_steps, config->num_speed);
 		return -EINVAL;
 	}
 
@@ -301,6 +302,7 @@ int steppermotor_check_config(struct steppermotor *motor, const struct steppermo
 		if (!speedinfo)
 		{
 			dev_err(motor->dev, "steppermotor_check_config error:speedinfo\n");
+			printk("vee:\t\t[%s]->[%d]\n", __FUNCTION__, __LINE__);
 			return -EINVAL;
 		}
 
@@ -308,6 +310,7 @@ int steppermotor_check_config(struct steppermotor *motor, const struct steppermo
 		if (IS_ERR_VALUE(ret))	// requested speed is not supported
 		{
 			dev_err(motor->dev, "steppermotor_check_config error:speed %d\n", speedinfo->speed);
+			printk("vee:\t\t[%s]->[%d]\n", __FUNCTION__, __LINE__);
 			return -EINVAL;
 		}
 
@@ -317,6 +320,7 @@ int steppermotor_check_config(struct steppermotor *motor, const struct steppermo
 	if (steps != config->steps_to_run)
 	{
 		dev_err(motor->dev, "steppermotor_check_config error:steps_to_run %d %d\n", steps, config->steps_to_run);
+		printk("vee:\t\t[%s]->[%d]\n", __FUNCTION__, __LINE__);
 		return -EINVAL;
 	}
 
@@ -467,6 +471,7 @@ EXPORT_SYMBOL_GPL(steppermotor_emergencybrake);
 
 void steppermotor_lock(struct steppermotor *motor)
 {
+	printk("steppermotor_lock\n\r");
 	if (motor && motor->ops->lock)
 		motor->ops->lock(motor);
 }
