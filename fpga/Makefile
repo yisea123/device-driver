@@ -9,7 +9,7 @@ else ifeq ($(machine),mx6q_voucher_scanner_dual_recycle_boxes)
 else ifeq ($(machine),mx6q_voucher_scanner_dual_recycle_boxes_printer)
 	obj-m := fpga_io.o fpga_debug_eim.o fpgax_io.o fpgax_debug.o
 else ifeq ($(machine),mx6q_voucher_scanner_printer)
-	obj-m := fpga_io.o fpga_debug_eim.o
+	obj-m := fpga_io.o fpga_debug_eim.o fpgax_io.o fpgax_debug.o
 else ifeq ($(machine),mx6q_voucher_scanner_paper_pattern)
 	obj-m := fpga_io.o fpga_debug_eim.o
 endif
