@@ -171,6 +171,7 @@ static int step_motor_start(mechanism_uint_motor_data_t *punit_motor_data, mecha
 
 				if ((pmotor_data->stoping_status & MOTOR_STOP_MASK) ==MOTOR_STOP_BY_ABNORMAL) {
 					ret = pmotor_data->err_status;
+					step_motor_stop(pmotor_data);
 				}
 				else
 					ret = 0;
